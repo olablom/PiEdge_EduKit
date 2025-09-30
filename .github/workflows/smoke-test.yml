@@ -1,0 +1,90 @@
+name: PC Smoke Test
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  release:
+    types: [published]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.10, 3.11]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Create synthetic test data
+        run: |
+          python -c "
+          from PIL import Image
+          import numpy as np
+          from pathlib import Path
+
+          # Create synthetic 2-class dataset
+          for class_name in ['cat', 'dog']:
+              class_dir = Path(f'data/{class_name}')
+              class_dir.mkdir(parents=True, exist_ok=True)
+              
+              # Create 10 dummy images per class
+              for i in range(10):
+                  img_array = np.random.randint(0, 256, (64, 64, 3), dtype=np.uint8)
+                  img = Image.fromarray(img_array)
+                  img.save(class_dir / f'{class_name}_{i:02d}.jpg')
+
+          print('Synthetic test data created successfully!')
+          "
+
+      - name: Run training
+        run: |
+          python -m piedge_edukit.train --data-path ./data --output-dir ./models --epochs 1 --batch-size 2
+
+      - name: Run benchmark (short version for CI)
+        run: |
+          python -m piedge_edukit.benchmark --model-path ./models/model.onnx --data-path ./data --warmup 5 --runs 10
+
+      - name: Run GPIO control (simulation)
+        run: |
+          python -m piedge_edukit.gpio_control --model-path ./models/model.onnx --data-path ./data --target "cat" --duration 2 --simulate
+
+      - name: Verify artifacts exist
+        run: |
+          # Check training artifacts
+          test -f models/model.onnx
+          test -f models/labels.json
+          test -f models/preprocess_config.json
+
+          # Check benchmark artifacts
+          test -f reports/latency.csv
+          test -f reports/latency_summary.txt
+          test -f reports/latency_plot.png
+
+          # Check GPIO artifacts
+          test -f reports/gpio_session.txt
+          test -f reports/gpio_history.png
+
+          echo "All artifacts verified successfully!"
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: piedge-edukit-artifacts-${{ matrix.python-version }}
+          path: |
+            models/
+            reports/
+          retention-days: 7

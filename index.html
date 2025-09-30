@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="sv">
+<meta charset="utf-8">
+<title>PiEdge EduKit — Micro-lesson (30 min)</title>
+
+<body>
+    <h1>PiEdge EduKit — Self-contained Micro-lesson (~30 min)</h1>
+
+    <p><b>Syfte:</b> Träna en liten bildklassificerare, exportera till ONNX, benchmarka CPU-latens och jämför FP32 vs
+        INT8. Avsluta med auto-verifiering som genererar JSON-kvitto.</p>
+
+    <h2>Förutsättningar</h2>
+    <ul>
+        <li>OS: Ubuntu 22.04 / macOS (Intel/Apple Silicon) / Windows 11</li>
+        <li>Python 3.12 installerat</li>
+        <li>Terminal. Inga admin-installationer krävs utöver lokal venv.</li>
+    </ul>
+
+    <h2>Steg 1 — Skapa och aktivera <code>.venv</code></h2>
+    <pre>
+bash scripts/setup_venv.sh
+# Aktivera (Linux/macOS):
+source .venv/bin/activate
+# Aktivera (Windows PowerShell):
+.venv\Scripts\Activate.ps1
+</pre>
+    <details>
+        <summary>Hint</summary>Om pip saknas, kör <code>python -m ensurepip --upgrade</code> innan installation.<br>
+        Alternativ med uv: <code>uv venv && source .venv/bin/activate && uv pip install -r requirements.txt</code>
+    </details>
+
+    <h2>Steg 2 — Kör lektionen (self-contained)</h2>
+    <pre>
+bash run_lesson.sh
+</pre>
+    <p>Detta kör: träning (FakeData), export, benchmark, kvantisering, utvärdering och till sist auto-verifiering.</p>
+
+    <h2>Steg 3 — Titta på resultaten</h2>
+    <ul>
+        <li><code>reports/latency_summary.txt</code></li>
+        <li><code>reports/quantization_comparison.csv</code></li>
+        <li><code>reports/confusion_matrix.png</code>, <code>reports/eval_summary.txt</code></li>
+        <li><code>progress/receipt.json</code> (auto-kvitto)</li>
+    </ul>
+
+    <h2>Automatisk verifiering</h2>
+    <p>Kör när som helst:</p>
+    <pre>python verify.py</pre>
+    <p>Det uppdaterar <code>progress/receipt.json</code> och returnerar PASS/FAIL med tydliga orsaker.</p>
+
+    <h2>Vanliga fallgropar</h2>
+    <ul>
+        <li><b>Apple Silicon:</b> Vi installerar <code>onnxruntime-silicon</code> automatiskt via miljömarkörer.</li>
+        <li><b>Windows PowerShell:</b> Kör <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> för att
+            kunna aktivera venv-skript. För .bat-filer: kör <code>run_lesson.bat</code> direkt.</li>
+        <li><b>Python 3.12:</b> Säkerställ att Python 3.12 är installerat. Kontrollera med
+            <code>python --version</code>.
+        </li>
+    </ul>
+
+    <h2>Bonus</h2>
+    <p>Kör <code>streamlit run app.py</code> (valfritt) för en enkel dashboard som visualiserar artefakter.</p>
+
+    <h3>GPU-stöd (valfritt)</h3>
+    <p>För GPU-benchmarking, använd <code>--providers CUDAExecutionProvider,CPUExecutionProvider</code>:</p>
+    <pre>python -m piedge_edukit.benchmark --model-path ./models/model.onnx --fakedata --providers CUDAExecutionProvider CPUExecutionProvider</pre>
+    <p><strong>Obs:</strong> GPU-stöd är valfritt. CPU är golden path och uppfyller alla krav.</p>
+
+    <h2>Packa för inlämning</h2>
+    <p>Zip-krav: <code>VG_Firstname_Lastname_YYYYMMDD.zip</code>. Inkludera hela projektroten.</p>
+    <p>Använd: <code>bash scripts/lesson_pack.sh</code> för automatisk packning.</p>
+</body>
+
+</html>
