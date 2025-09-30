@@ -6,6 +6,10 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
+  schedule:
+    - cron: "0 3 * * 1"  # Monday 03:00 UTC - full lesson test
+
+permissions: { contents: read }
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -15,10 +19,14 @@ jobs:
   lesson-ci:
     name: "${{ matrix.os }} / Python 3.12"
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-14]
+        include:
+          - os: ubuntu-latest
+          - os: windows-latest
+          - os: macos-14
 
     steps:
       - name: Checkout
@@ -35,7 +43,9 @@ jobs:
           path: |
             ~/.cache/pip
             ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-py312-${{ hashFiles('requirements.txt') }}
+          key: ${{ runner.os }}-py312-${{ hashFiles('requirements.txt') }}-${{ hashFiles('setup.py', 'pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-py312-
 
       - name: Create .venv
         shell: bash
@@ -72,6 +82,7 @@ jobs:
         run: |
           set -e
           source .venv/bin/activate
+          export PYTHONHASHSEED=0
           python scripts/preflight.py || true
           python -m piedge_edukit.train --fakedata --output-dir ./models
           python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
@@ -102,3 +113,37 @@ jobs:
             reports/quantization_comparison.csv
             reports/eval_summary.txt
             reports/confusion_matrix.png
+          retention-days: 30
+
+  # Full lesson test (weekly schedule)
+  full-lesson-linux:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      
+      - name: Run full lesson
+        shell: bash
+        run: |
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -q -r requirements.txt
+          pip install -e . || true
+          bash run_lesson.sh
+      
+      - name: Upload full lesson artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: full-lesson-artifacts
+          path: |
+            progress/receipt.json
+            reports/**
+          retention-days: 30

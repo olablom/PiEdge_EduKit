@@ -1,74 +1,71 @@
 <!doctype html>
-<html lang="sv">
+<html lang="en">
 <meta charset="utf-8">
 <title>PiEdge EduKit — Micro-lesson (30 min)</title>
 
 <body>
     <h1>PiEdge EduKit — Self-contained Micro-lesson (~30 min)</h1>
 
-    <p><b>Syfte:</b> Träna en liten bildklassificerare, exportera till ONNX, benchmarka CPU-latens och jämför FP32 vs
-        INT8. Avsluta med auto-verifiering som genererar JSON-kvitto.</p>
+    <p><b>Purpose:</b> Train a tiny image classifier, export to ONNX, benchmark CPU latency and compare FP32 vs INT8. End with auto-verification that generates JSON receipt.</p>
+    <p><a href="index.sv.html">Svenska versionen</a></p>
 
-    <h2>Förutsättningar</h2>
+    <h2>Prerequisites</h2>
     <ul>
         <li>OS: Ubuntu 22.04 / macOS (Intel/Apple Silicon) / Windows 11</li>
-        <li>Python 3.12 installerat</li>
-        <li>Terminal. Inga admin-installationer krävs utöver lokal venv.</li>
+        <li>Python 3.12 installed</li>
+        <li>Terminal. No admin installations required beyond local venv.</li>
     </ul>
 
-    <h2>Steg 1 — Skapa och aktivera <code>.venv</code></h2>
+    <h2>Step 1 — Create and activate <code>.venv</code></h2>
     <pre>
 bash scripts/setup_venv.sh
-# Aktivera (Linux/macOS):
+# Activate (Linux/macOS):
 source .venv/bin/activate
-# Aktivera (Windows PowerShell):
+# Activate (Windows PowerShell):
 .venv\Scripts\Activate.ps1
 </pre>
     <details>
-        <summary>Hint</summary>Om pip saknas, kör <code>python -m ensurepip --upgrade</code> innan installation.<br>
-        Alternativ med uv: <code>uv venv && source .venv/bin/activate && uv pip install -r requirements.txt</code>
+        <summary>Hint</summary>If pip is missing, run <code>python -m ensurepip --upgrade</code> before installation.<br>
+        Alternative with uv: <code>uv venv && source .venv/bin/activate && uv pip install -r requirements.txt</code>
     </details>
 
-    <h2>Steg 2 — Kör lektionen (self-contained)</h2>
+    <h2>Step 2 — Run the lesson (self-contained)</h2>
     <pre>
 bash run_lesson.sh
 </pre>
-    <p>Detta kör: träning (FakeData), export, benchmark, kvantisering, utvärdering och till sist auto-verifiering.</p>
+    <p>This runs: training (FakeData), export, benchmark, quantization, evaluation and finally auto-verification.</p>
 
-    <h2>Steg 3 — Titta på resultaten</h2>
+    <h2>Step 3 — Look at the results</h2>
     <ul>
         <li><code>reports/latency_summary.txt</code></li>
         <li><code>reports/quantization_comparison.csv</code></li>
         <li><code>reports/confusion_matrix.png</code>, <code>reports/eval_summary.txt</code></li>
-        <li><code>progress/receipt.json</code> (auto-kvitto)</li>
+        <li><code>progress/receipt.json</code> (auto-receipt)</li>
     </ul>
 
-    <h2>Automatisk verifiering</h2>
-    <p>Kör när som helst:</p>
+    <h2>Automatic verification</h2>
+    <p>Run anytime:</p>
     <pre>python verify.py</pre>
-    <p>Det uppdaterar <code>progress/receipt.json</code> och returnerar PASS/FAIL med tydliga orsaker.</p>
+    <p>This updates <code>progress/receipt.json</code> and returns PASS/FAIL with clear reasons.</p>
 
-    <h2>Vanliga fallgropar</h2>
+    <h2>Common pitfalls</h2>
     <ul>
-        <li><b>Apple Silicon:</b> Vi installerar <code>onnxruntime-silicon</code> automatiskt via miljömarkörer.</li>
-        <li><b>Windows PowerShell:</b> Kör <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> för att
-            kunna aktivera venv-skript. För .bat-filer: kör <code>run_lesson.bat</code> direkt.</li>
-        <li><b>Python 3.12:</b> Säkerställ att Python 3.12 är installerat. Kontrollera med
-            <code>python --version</code>.
-        </li>
+        <li><b>Apple Silicon:</b> We install <code>onnxruntime-silicon</code> automatically via environment markers.</li>
+        <li><b>Windows PowerShell:</b> Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> to enable venv scripts. For .bat files: run <code>run_lesson.bat</code> directly.</li>
+        <li><b>Python 3.12:</b> Ensure Python 3.12 is installed. Check with <code>python --version</code>.</li>
     </ul>
 
     <h2>Bonus</h2>
-    <p>Kör <code>streamlit run app.py</code> (valfritt) för en enkel dashboard som visualiserar artefakter.</p>
+    <p>Run <code>streamlit run app.py</code> (optional) for a simple dashboard that visualizes artifacts.</p>
 
-    <h3>GPU-stöd (valfritt)</h3>
-    <p>För GPU-benchmarking, använd <code>--providers CUDAExecutionProvider,CPUExecutionProvider</code>:</p>
+    <h3>GPU support (optional)</h3>
+    <p>For GPU benchmarking, use <code>--providers CUDAExecutionProvider,CPUExecutionProvider</code>:</p>
     <pre>python -m piedge_edukit.benchmark --model-path ./models/model.onnx --fakedata --providers CUDAExecutionProvider CPUExecutionProvider</pre>
-    <p><strong>Obs:</strong> GPU-stöd är valfritt. CPU är golden path och uppfyller alla krav.</p>
+    <p><strong>Note:</strong> GPU support is optional. CPU is the golden path and fulfills all requirements.</p>
 
-    <h2>Packa för inlämning</h2>
-    <p>Zip-krav: <code>VG_Firstname_Lastname_YYYYMMDD.zip</code>. Inkludera hela projektroten.</p>
-    <p>Använd: <code>bash scripts/lesson_pack.sh</code> för automatisk packning.</p>
+    <h2>Package for submission</h2>
+    <p>Zip requirement: <code>VG_Firstname_Lastname_YYYYMMDD.zip</code>. Include entire project root.</p>
+    <p>Use: <code>bash scripts/lesson_pack.sh</code> for automatic packaging.</p>
 </body>
 
 </html>
