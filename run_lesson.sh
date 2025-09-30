@@ -2,6 +2,20 @@
 # filename: run_lesson.sh
 set -euo pipefail
 
+# --- Python 3.12 gate ---
+need="3.12"
+have=$(python -c 'import sys;print(".".join(map(str,sys.version_info[:2])))' 2>/dev/null || true)
+if [ "$have" != "$need" ]; then
+  echo "❌ Python $need krävs (du har $have eller saknas)."
+  if command -v py >/dev/null 2>&1; then
+    echo "➡️  Windows: kör i Git Bash:"
+    echo "    winget install --id Python.Python.3.12 -e && exec bash"
+  else
+    echo "➡️  Se README för installationskommandon (macOS/Linux)."
+  fi
+  exit 1
+fi
+
 # 1) Ensure venv
 if [ ! -d ".venv" ]; then
   echo "[run] .venv not found -> running scripts/setup_venv.sh"

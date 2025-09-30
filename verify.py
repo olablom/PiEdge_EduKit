@@ -13,6 +13,13 @@ Emits: PASS/FAIL and structured metrics.
 import json
 import re
 import sys
+
+# Python 3.12 gate
+if sys.version_info[:2] != (3, 12):
+    print("❌ Python 3.12 krävs. Du kör %d.%d." % sys.version_info[:2])
+    print("Se README för installationssteg (Windows/macOS/Linux).")
+    sys.exit(2)
+
 from pathlib import Path
 from datetime import datetime
 
