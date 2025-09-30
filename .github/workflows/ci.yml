@@ -3,9 +3,9 @@ name: PiEdge EduKit CI
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
   workflow_dispatch:
 
 permissions: { contents: read }
@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lesson-ci:
-    name: "${{ matrix.os }} / Python 3.12"
+  ci:
+    name: "${{ matrix.os }} / Py 3.12"
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     strategy:
@@ -25,100 +25,77 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-14]
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
+        with: { python-version: "3.12" }
 
-      # Cache pip (Linux/macOS)
-      - name: Cache pip (bash)
+      # Cache pip
+      - name: Cache pip (Linux/macOS)
         if: runner.os != 'Windows'
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
           key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py312-
+          restore-keys: ${{ runner.os }}-py312-
 
-      # Cache pip (Windows)
-      - name: Cache pip (pwsh)
+      - name: Cache pip (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
           path: ~\AppData\Local\pip\Cache
           key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-py312-
+          restore-keys: ${{ runner.os }}-py312-
 
-      # ----- Linux/macOS path -----
-      - name: Create venv + install (bash)
-        if: runner.os != 'Windows'
-        shell: bash
+      # ---- Install (no venv to reduce moving parts) ----
+      - name: Upgrade pip/tooling
         run: |
-          set -euxo pipefail
           python -V
-          python -m venv .venv
-          source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements-minimal.txt
-          pip install -e .
+          python -m pip install -U pip wheel setuptools
+
+      - name: Install deps (fast path)
+        run: |
+          echo "=== requirements-minimal.txt ==="
+          cat requirements-minimal.txt
+          # Preinstall numpy to avoid build fallbacks
+          python -m pip install numpy==1.26.4
+          python -m pip install -r requirements-minimal.txt
+          python -m pip install -e .
           python - <<'PY'
 import sys, platform
 print("PY:", sys.version)
 print("PLAT:", platform.platform())
-# hard sanity: these must import or the lesson cannot run
-import onnxruntime as ort, torch, torchvision
-print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
-print("torch:", torch.__version__, "torchvision:", torchvision.__version__)
+import onnxruntime as ort; print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
+import torch, torchvision; print("torch:", torch.__version__, "torchvision:", torchvision.__version__)
 PY
 
-      - name: Run micro-lesson (bash)
+      # ---- Run the micro-lesson (very short) ----
+      - name: Run (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
-        env:
-          PYTHONHASHSEED: "0"
+        env: { PYTHONHASHSEED: "0" }
         run: |
           set -euxo pipefail
-          source .venv/bin/activate
           python -m piedge_edukit.train --fakedata --output-dir ./models
           python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
           python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 10 || true
           python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
           python verify.py
 
-      # ----- Windows path -----
-      - name: Create venv + install (PowerShell)
+      - name: Run (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env: { PYTHONHASHSEED: "0" }
         run: |
           $ErrorActionPreference = 'Stop'
-          python -V
-          python -m venv .venv
-          .\.venv\Scripts\Activate.ps1
-          python -m pip install --upgrade pip
-          pip install -r requirements-minimal.txt
-          pip install -e .
-          python -c "import sys,platform;print('PY:',sys.version);print('PLAT:',platform.platform())"
-          python -c "import onnxruntime as ort, torch, torchvision; print('ORT:',ort.__version__, 'providers:', ort.get_available_providers()); print('torch:', torch.__version__, 'torchvision:', torchvision.__version__)"
-
-      - name: Run micro-lesson (PowerShell)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          PYTHONHASHSEED: "0"
-        run: |
-          $ErrorActionPreference = 'Stop'
-          .\.venv\Scripts\Activate.ps1
           python -m piedge_edukit.train --fakedata --output-dir .\models
           python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
           try { python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 } catch { Write-Host "quantization failed; continuing" }
           python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
           python verify.py
 
-      - name: Upload receipt and reports
+      - name: Upload artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
