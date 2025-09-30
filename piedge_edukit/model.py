@@ -18,8 +18,16 @@ class MobileNetV2Classifier(nn.Module):
     def __init__(self, num_classes: int = 3, pretrained: bool = True):
         super().__init__()
 
-        # Load pretrained MobileNetV2
-        self.backbone = models.mobilenet_v2(pretrained=pretrained)
+        # Load MobileNetV2 with optional pretrained weights.
+        # Newer torchvision prefers explicit weights over deprecated 'pretrained'.
+        try:
+            weights = (
+                models.MobileNet_V2_Weights.DEFAULT if pretrained else None
+            )
+            self.backbone = models.mobilenet_v2(weights=weights)
+        except Exception:
+            # Fallback for older torchvision versions where 'weights' may not exist
+            self.backbone = models.mobilenet_v2(pretrained=pretrained)
 
         # Replace classifier head
         self.backbone.classifier = nn.Sequential(

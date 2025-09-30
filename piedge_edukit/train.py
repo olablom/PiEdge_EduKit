@@ -113,11 +113,13 @@ class Trainer:
         output_dir: str = "models",
         seed: int = 42,
         use_fakedata: bool = False,
+        use_pretrained: bool = True,
     ):
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.use_fakedata = use_fakedata
+        self.use_pretrained = use_pretrained
 
         # Set seeds for reproducibility
         self._set_seeds(seed)
@@ -259,9 +261,9 @@ class Trainer:
         print("Preparing data...")
         train_loader, val_loader, label_manager = self.prepare_data()
 
-        # Create model
+        # Create model (avoid downloading pretrained weights for fakedata or when --no-pretrained is set)
         num_classes = label_manager.get_num_classes()
-        model = create_model(num_classes=num_classes, pretrained=True)
+        model = create_model(num_classes=num_classes, pretrained=self.use_pretrained)
         model = model.to(self.device)
 
         # Setup training
@@ -391,6 +393,11 @@ def main():
     parser.add_argument(
         "--fakedata", action="store_true", help="Use FakeData instead of real images"
     )
+    parser.add_argument(
+        "--no-pretrained",
+        action="store_true",
+        help="Do not load pretrained weights (speeds up CI and offline runs)",
+    )
 
     args = parser.parse_args()
 
@@ -404,6 +411,7 @@ def main():
         output_dir=args.output_dir,
         seed=args.seed,
         use_fakedata=args.fakedata,
+        use_pretrained=(not args.fakedata and not args.no_pretrained),
     )
 
     # Update training parameters

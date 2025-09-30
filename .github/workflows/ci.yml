@@ -29,7 +29,7 @@ jobs:
 
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
 
       # Cache pip (Linux/macOS)
       - name: Cache pip (Linux/macOS)
@@ -70,11 +70,13 @@ jobs:
         shell: bash
         env:
           PYTHONHASHSEED: "0"
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
         run: |
           set -euxo pipefail
-          python -m piedge_edukit.train --fakedata --output-dir ./models
-          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
-          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 10 || true
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 3 --batch-size 128 --output-dir ./models
+          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --providers CPUExecutionProvider --warmup 2 --runs 5
+          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 8 || true
           python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
           python verify.py
 
@@ -83,11 +85,13 @@ jobs:
         shell: pwsh
         env:
           PYTHONHASHSEED: "0"
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m piedge_edukit.train --fakedata --output-dir .\models
-          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
-          try { python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 } catch { Write-Host "quantization failed; continuing" }
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 3 --batch-size 128 --output-dir .\models
+          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --providers CPUExecutionProvider --warmup 2 --runs 5
+          try { python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 8 } catch { Write-Host "quantization failed; continuing" }
           python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
           python verify.py
 
