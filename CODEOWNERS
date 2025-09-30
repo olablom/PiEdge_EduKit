@@ -1,0 +1,29 @@
+# CODEOWNERS file for PiEdge EduKit
+# This file defines who should review changes to specific parts of the codebase
+
+# Global ownership - require review from repository owner
+* @olablom
+
+# Critical infrastructure files
+/.github/ @olablom
+/scripts/ @olablom
+requirements*.txt @olablom
+setup.py @olablom
+
+# Core lesson components
+/piedge_edukit/ @olablom
+run_lesson.sh @olablom
+run_lesson.bat @olablom
+verify.py @olablom
+
+# Documentation
+README.md @olablom
+README.sv.md @olablom
+index.html @olablom
+index.sv.html @olablom
+CHANGELOG.md @olablom
+
+# Configuration files
+Makefile @olablom
+.gitignore @olablom
+LICENSE @olablom
