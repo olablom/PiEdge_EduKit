@@ -38,12 +38,13 @@ jobs:
         with:
           path: |
             ~/.cache/pip
-            ~\AppData\Local\pip\Cache
+            ${{ runner.os == 'Windows' && format('{0}\pip\Cache', env:LOCALAPPDATA) || '' }}
           key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
           restore-keys: |
             ${{ runner.os }}-py312-
 
-      - name: Create venv (bash)
+      # ----- Linux/macOS path -----
+      - name: Create venv + install (bash)
         if: runner.os != 'Windows'
         shell: bash
         run: |
@@ -51,17 +52,6 @@ jobs:
           python -V
           python -m venv .venv
           source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements-minimal.txt
-          pip list
-
-      - name: Create venv (PowerShell)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          python -V
-          python -m venv .venv
-          .\.venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
           pip install -r requirements-minimal.txt
           pip list
@@ -71,23 +61,9 @@ jobs:
         shell: bash
         run: |
           source .venv/bin/activate
-          python -c "import onnxruntime as ort, sys; print('ORT:', ort.__version__, 'providers:', ort.get_available_providers()); print('PY:', sys.version)"
-          python -c "import platform; print(platform.platform())" || true
+          python -c "import onnxruntime as ort, sys, platform; print('ORT', ort.__version__, 'providers', ort.get_available_providers()); print('PY', sys.version); print(platform.platform())" || true
 
-      - name: Preflight info (PowerShell)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          .\.venv\Scripts\Activate.ps1
-          python - << 'PY'
-import onnxruntime as ort, sys, platform
-print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
-print("PY:", sys.version)
-print(platform.platform())
-PY
-
-      # Run a short, deterministic lesson on fakedata (CPU golden path)
-      - name: Run micro-lesson (Linux/macOS)
+      - name: Run micro-lesson (bash)
         if: runner.os != 'Windows'
         shell: bash
         env:
@@ -97,12 +73,30 @@ PY
           source .venv/bin/activate
           python -m piedge_edukit.train --fakedata --output-dir ./models
           python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
-          # optional; allow failure
           python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 10 || true
           python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
           python verify.py
 
-      - name: Run micro-lesson (Windows)
+      # ----- Windows path -----
+      - name: Create venv + install (PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          python -V
+          python -m venv .venv
+          .\.venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          pip install -r requirements-minimal.txt
+          pip list
+
+      - name: Preflight info (PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          python -c "import onnxruntime as ort, sys, platform; print('ORT', ort.__version__, 'providers', ort.get_available_providers()); print('PY', sys.version); print(platform.platform())"
+
+      - name: Run micro-lesson (PowerShell)
         if: runner.os == 'Windows'
         shell: pwsh
         env:
@@ -111,7 +105,7 @@ PY
           .\.venv\Scripts\Activate.ps1
           python -m piedge_edukit.train --fakedata --output-dir .\models
           python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
-          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 2>$null; if ($LASTEXITCODE -ne 0) { Write-Host "quantization failed; continuing" }
+          try { python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 } catch { Write-Host "quantization failed; continuing" }
           python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
           python verify.py
 
