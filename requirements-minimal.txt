@@ -1,0 +1,20 @@
+# filename: requirements-minimal.txt
+# PiEdge EduKit - Minimal requirements for core micro-lesson (Python 3.12)
+
+# Core ML dependencies
+numpy==1.26.4
+torch==2.3.1
+torchvision==0.18.1
+onnx==1.16.1
+onnxruntime==1.18.0; not (platform_system == "Darwin" and platform_machine == "arm64")
+onnxruntime-silicon==1.18.0; platform_system == "Darwin" and platform_machine == "arm64"
+
+# Data processing
+Pillow==10.3.0
+pandas==2.2.2
+
+# Progress bars
+tqdm==4.66.4
+
+# System info
+psutil==5.9.8

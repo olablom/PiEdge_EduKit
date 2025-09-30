@@ -1,4 +1,4 @@
-# filename: .github/workflows/ci.yml
+# .github/workflows/ci.yml
 name: PiEdge EduKit CI
 
 on:
@@ -6,8 +6,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  schedule:
-    - cron: "0 3 * * 1"  # Monday 03:00 UTC - full lesson test
+  workflow_dispatch:
 
 permissions: { contents: read }
 
@@ -23,10 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - os: ubuntu-latest
-          - os: windows-latest
-          - os: macos-14
+        os: [ubuntu-latest, windows-latest, macos-14]
 
     steps:
       - name: Checkout
@@ -43,66 +39,83 @@ jobs:
           path: |
             ~/.cache/pip
             ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-py312-${{ hashFiles('requirements.txt') }}-${{ hashFiles('setup.py', 'pyproject.toml') }}
+          key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
           restore-keys: |
             ${{ runner.os }}-py312-
 
-      - name: Create .venv
+      - name: Create venv (bash)
+        if: runner.os != 'Windows'
         shell: bash
+        run: |
+          set -e
+          python -V
+          python -m venv .venv
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements-minimal.txt
+          pip list
+
+      - name: Create venv (PowerShell)
+        if: runner.os == 'Windows'
+        shell: pwsh
         run: |
           python -V
           python -m venv .venv
+          .\.venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          pip install -r requirements-minimal.txt
+          pip list
 
-      - name: Install deps (Linux/macOS)
+      - name: Preflight info (bash)
         if: runner.os != 'Windows'
         shell: bash
         run: |
           source .venv/bin/activate
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e . || true  # om paketet finns
+          python -c "import onnxruntime as ort, sys; print('ORT:', ort.__version__, 'providers:', ort.get_available_providers()); print('PY:', sys.version)"
+          python -c "import platform; print(platform.platform())" || true
 
-      - name: Install deps (Windows)
+      - name: Preflight info (PowerShell)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
           .\.venv\Scripts\Activate.ps1
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-          pip install -e . 2>$null
+          python - << 'PY'
+import onnxruntime as ort, sys, platform
+print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
+print("PY:", sys.version)
+print(platform.platform())
+PY
 
-      # Kort, självförsörjande körning (CPU, fakedata) som speglar run_lesson men med mindre N
-      - name: Run micro-lesson (short CI pass) - Linux/macOS
+      # Run a short, deterministic lesson on fakedata (CPU golden path)
+      - name: Run micro-lesson (Linux/macOS)
         if: runner.os != 'Windows'
         shell: bash
         env:
-          # om dina CLI stödjer kortare körningar via env, sätt dessa; annars låga flaggar direkt
-          CI_RUNS: "10"
-          CI_WARMUP: "5"
+          PYTHONHASHSEED: "0"
         run: |
           set -e
           source .venv/bin/activate
-          export PYTHONHASHSEED=0
-          python scripts/preflight.py || true
-          python -m piedge_edukit.train --fakedata --output-dir ./models || true
-          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10 || true
+          python -m piedge_edukit.train --fakedata --output-dir ./models
+          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
+          # optional; allow failure
           python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 10 || true
-          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata || true
-          python verify.py || true
+          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
+          python verify.py
 
-      - name: Run micro-lesson (short CI pass) - Windows
+      - name: Run micro-lesson (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
+        env:
+          PYTHONHASHSEED: "0"
         run: |
           .\.venv\Scripts\Activate.ps1
-          python scripts\preflight.py 2>$null | Out-Null
-          python -m piedge_edukit.train --fakedata --output-dir .\models 2>$null | Out-Null
-          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10 2>$null | Out-Null
-          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 2>$null | Out-Null
-          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata 2>$null | Out-Null
-          python verify.py 2>$null | Out-Null
+          python -m piedge_edukit.train --fakedata --output-dir .\models
+          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
+          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 2>$null; if ($LASTEXITCODE -ne 0) { Write-Host "quantization failed; continuing" }
+          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
+          python verify.py
 
-      - name: Upload receipt
+      - name: Upload receipt and reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
@@ -113,37 +126,5 @@ jobs:
             reports/quantization_comparison.csv
             reports/eval_summary.txt
             reports/confusion_matrix.png
-          retention-days: 30
-
-  # Full lesson test (weekly schedule)
-  full-lesson-linux:
-    if: github.event_name == 'schedule'
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-      
-      - name: Setup Python 3.12
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      
-      - name: Run full lesson
-        shell: bash
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -q -r requirements.txt
-          pip install -e . || true
-          bash run_lesson.sh
-      
-      - name: Upload full lesson artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: full-lesson-artifacts
-          path: |
-            progress/receipt.json
-            reports/**
+          if-no-files-found: ignore
           retention-days: 30

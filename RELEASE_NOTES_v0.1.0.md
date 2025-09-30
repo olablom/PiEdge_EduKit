@@ -1,22 +1,26 @@
 # PiEdge EduKit v0.1.0 Release Notes
 
 ## 🎯 Overview
+
 A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image classifier → export to ONNX → benchmark latency → drive a GPIO LED with hysteresis.
 
 ## ✨ Key Features
 
 ### Core Learning Path
+
 - **Deterministic preprocessing** + ONNX export (opset=17)
 - **Latency benchmarking** with comprehensive metrics (p50/p95/mean/std)
 - **INT8 static quantization** with performance comparison
 - **GPIO inference** with hysteresis + debounce (simulate/real)
 
 ### Platform Support
+
 - **Python 3.12 only** - enforced across all components
 - **Cross-platform CI** - Ubuntu, Windows, macOS validation
 - **Raspberry Pi ready** - aarch64 support with GPIO control
 
 ### Data Flexibility
+
 - **No images needed** - `--fakedata` flag for quick testing
 - **Synthetic datasets** - transparent data generation
 - **Real image support** - flexible data layouts (`data/<class>/*` or `data/{train,val}/<class>/*`)
@@ -64,6 +68,7 @@ python verify.py
 ## 🎓 Educational Value
 
 Perfect for:
+
 - **Edge ML introduction** - Complete pipeline in 30 minutes
 - **ONNX workflow** - Training → export → deployment
 - **Performance analysis** - Latency benchmarking methodology
