@@ -31,7 +31,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      # Cache pip (split by OS)
+      # Cache pip (Linux/macOS)
       - name: Cache pip (Linux/macOS)
         if: runner.os != 'Windows'
         uses: actions/cache@v4
@@ -40,11 +40,12 @@ jobs:
           key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
           restore-keys: ${{ runner.os }}-py312-
 
+      # Cache pip (Windows) — NOTE the quoted path
       - name: Cache pip (Windows)
         if: runner.os == 'Windows'
         uses: actions/cache@v4
         with:
-          path: ~\AppData\Local\pip\Cache
+          path: "~\\AppData\\Local\\pip\\Cache"
           key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
           restore-keys: ${{ runner.os }}-py312-
 
@@ -60,13 +61,9 @@ jobs:
           python -m pip install numpy==1.26.4
           python -m pip install -r requirements-minimal.txt
           python -m pip install -e .
-          python - <<'PY'
-import sys, platform
-print("PY:", sys.version)
-print("PLAT:", platform.platform())
-import onnxruntime as ort; print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
-import torch, torchvision; print("torch:", torch.__version__, "torchvision:", torchvision.__version__)
-PY
+          python -c "import sys,platform;print('PY:',sys.version);print('PLAT:',platform.platform())"
+          python -c "import onnxruntime as ort; print('ORT:', ort.__version__, 'providers:', ort.get_available_providers())"
+          python -c "import torch, torchvision; print('torch:', torch.__version__, 'torchvision:', torchvision.__version__)"
 
       - name: Micro-lesson (Linux/macOS)
         if: runner.os != 'Windows'
