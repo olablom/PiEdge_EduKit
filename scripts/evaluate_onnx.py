@@ -116,6 +116,7 @@ def main():
         "--fakedata", action="store_true", help="Use synthetic data instead of files"
     )
     ap.add_argument("--outdir", default="reports", help="Output dir for reports")
+    ap.add_argument("--limit", type=int, default=None, help="Limit number of samples for fast CI")
     args = ap.parse_args()
 
     outdir = Path(args.outdir)
@@ -127,12 +128,15 @@ def main():
     iname = sess.get_inputs()[0].name
 
     if args.fakedata:
-        imgs, y_true, classes = fake_dataset(n=50)
+        n = args.limit if args.limit is not None else 50
+        imgs, y_true, classes = fake_dataset(n=n)
         # override class_names if mismatch
         if len(classes) == len(class_names):
             class_names = classes
     else:
         pairs = gather_images(Path(args.data))
+        if args.limit is not None:
+            pairs = pairs[: args.limit]
         if len(pairs) == 0:
             print(
                 "No images found; try --fakedata or create data/val/<class>/*",

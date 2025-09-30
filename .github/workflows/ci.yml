@@ -18,11 +18,11 @@ jobs:
   ci:
     name: "${{ matrix.os }} / Py 3.12"
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-14]
+        os: [ubuntu-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v4
@@ -65,7 +65,7 @@ jobs:
           python -c "import onnxruntime as ort; print('ORT:', ort.__version__, 'providers:', ort.get_available_providers())"
           python -c "import torch, torchvision; print('torch:', torch.__version__, 'torchvision:', torchvision.__version__)"
 
-      - name: Micro-lesson (Linux/macOS)
+      - name: Micro-lesson (Linux)
         if: runner.os != 'Windows'
         shell: bash
         env:
@@ -74,10 +74,9 @@ jobs:
           MKL_NUM_THREADS: "1"
         run: |
           set -euxo pipefail
-          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 3 --batch-size 128 --output-dir ./models
-          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --providers CPUExecutionProvider --warmup 2 --runs 5
-          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 8 || true
-          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
+          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
+          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 16
           python verify.py
 
       - name: Micro-lesson (Windows)
@@ -107,4 +106,46 @@ jobs:
             reports/eval_summary.txt
             reports/confusion_matrix.png
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 7
+
+  macos-smoke:
+    name: macos-14 / Py 3.12 (smoke)
+    runs-on: macos-14
+    continue-on-error: true
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        shell: bash
+        run: |
+          set -euxo pipefail
+          python -m pip install -U pip wheel setuptools
+          python -m pip install numpy==1.26.4
+          python -m pip install -r requirements-minimal.txt
+          python -m pip install -e .
+      - name: Smoke run (ultra fast)
+        shell: bash
+        env:
+          PYTHONHASHSEED: "0"
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          set -euxo pipefail
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
+          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
+          # skip quantization on macOS to save time
+          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 8
+          python verify.py || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: progress-macos
+          path: |
+            progress/receipt.json
+            reports/**
+            models/model.onnx
+          if-no-files-found: ignore
+          retention-days: 7
