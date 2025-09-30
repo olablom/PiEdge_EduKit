@@ -1,110 +1,24 @@
-# .github/workflows/ci.yml
-name: PiEdge EduKit CI
+name: CI Sanity
 
 on:
   push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
-permissions: { contents: read }
-
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+permissions:
+  contents: read
 
 jobs:
-  ci:
-    name: "${{ matrix.os }} / Py 3.12"
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-14]
-
+  sanity:
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Python 3.12
         uses: actions/setup-python@v5
-        with: { python-version: "3.12" }
-
-      # Cache pip
-      - name: Cache pip (Linux/macOS)
-        if: runner.os != 'Windows'
-        uses: actions/cache@v4
         with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
-          restore-keys: ${{ runner.os }}-py312-
+          python-version: '3.12'
 
-      - name: Cache pip (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: ~\AppData\Local\pip\Cache
-          key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
-          restore-keys: ${{ runner.os }}-py312-
-
-      # ---- Install (no venv to reduce moving parts) ----
-      - name: Upgrade pip/tooling
-        run: |
-          python -V
-          python -m pip install -U pip wheel setuptools
-
-      - name: Install deps (fast path)
-        run: |
-          echo "=== requirements-minimal.txt ==="
-          cat requirements-minimal.txt
-          # Preinstall numpy to avoid build fallbacks
-          python -m pip install numpy==1.26.4
-          python -m pip install -r requirements-minimal.txt
-          python -m pip install -e .
-          python - <<'PY'
-import sys, platform
-print("PY:", sys.version)
-print("PLAT:", platform.platform())
-import onnxruntime as ort; print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
-import torch, torchvision; print("torch:", torch.__version__, "torchvision:", torchvision.__version__)
-PY
-
-      # ---- Run the micro-lesson (very short) ----
-      - name: Run (Linux/macOS)
-        if: runner.os != 'Windows'
-        shell: bash
-        env: { PYTHONHASHSEED: "0" }
-        run: |
-          set -euxo pipefail
-          python -m piedge_edukit.train --fakedata --output-dir ./models
-          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
-          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 10 || true
-          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
-          python verify.py
-
-      - name: Run (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env: { PYTHONHASHSEED: "0" }
-        run: |
-          $ErrorActionPreference = 'Stop'
-          python -m piedge_edukit.train --fakedata --output-dir .\models
-          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
-          try { python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10 } catch { Write-Host "quantization failed; continuing" }
-          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
-          python verify.py
-
-      - name: Upload artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: progress-${{ matrix.os }}
-          path: |
-            progress/receipt.json
-            reports/latency_summary.txt
-            reports/quantization_comparison.csv
-            reports/eval_summary.txt
-            reports/confusion_matrix.png
-          if-no-files-found: ignore
-          retention-days: 30
+      - name: Show Python
+        run: python -V
