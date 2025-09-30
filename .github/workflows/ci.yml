@@ -76,6 +76,7 @@ jobs:
           set -euxo pipefail
           python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
           python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
+          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 16 --providers CPUExecutionProvider
           python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 16
           python verify.py
 
@@ -88,10 +89,10 @@ jobs:
           MKL_NUM_THREADS: "1"
         run: |
           $ErrorActionPreference = 'Stop'
-          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 3 --batch-size 128 --output-dir .\models
-          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --providers CPUExecutionProvider --warmup 2 --runs 5
-          try { python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 8 } catch { Write-Host "quantization failed; continuing" }
-          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir .\models
+          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --providers CPUExecutionProvider --warmup 1 --runs 3
+          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 16 --providers CPUExecutionProvider
+          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata --limit 16
           python verify.py
 
       - name: Upload artifacts
