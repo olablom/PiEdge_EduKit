@@ -114,12 +114,25 @@ class Trainer:
         seed: int = 42,
         use_fakedata: bool = False,
         use_pretrained: bool = True,
+        ci_fast: bool = False,
+        fake_train_size: int = 100,
+        fake_val_size: int = 20,
+        num_workers: int = 2,
     ):
         self.data_dir = Path(data_dir)
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.use_fakedata = use_fakedata
         self.use_pretrained = use_pretrained
+        self.ci_fast = ci_fast
+        # shrink dataset and workers in CI fast mode (only relevant for FakeData)
+        if self.ci_fast and self.use_fakedata:
+            fake_train_size = 64
+            fake_val_size = 16
+            num_workers = 0
+        self.fake_train_size = fake_train_size
+        self.fake_val_size = fake_val_size
+        self.num_workers = num_workers
 
         # Set seeds for reproducibility
         self._set_seeds(seed)
@@ -160,10 +173,10 @@ class Trainer:
         if self.use_fakedata:
             # Use FakeData for testing
             train_dataset = FakeImageDataset(
-                size=100, num_classes=2, transform=train_transform
+                size=self.fake_train_size, num_classes=2, transform=train_transform
             )
             val_dataset = FakeImageDataset(
-                size=20, num_classes=2, transform=val_transform
+                size=self.fake_val_size, num_classes=2, transform=val_transform
             )
             unique_classes = train_dataset.classes
         else:
@@ -179,10 +192,16 @@ class Trainer:
 
         # Create data loaders
         train_loader = DataLoader(
-            train_dataset, batch_size=self.batch_size, shuffle=True, num_workers=2
+            train_dataset,
+            batch_size=self.batch_size,
+            shuffle=True,
+            num_workers=self.num_workers,
         )
         val_loader = DataLoader(
-            val_dataset, batch_size=self.batch_size, shuffle=False, num_workers=2
+            val_dataset,
+            batch_size=self.batch_size,
+            shuffle=False,
+            num_workers=self.num_workers,
         )
 
         return train_loader, val_loader, self.label_manager
@@ -398,6 +417,12 @@ def main():
         action="store_true",
         help="Do not load pretrained weights (speeds up CI and offline runs)",
     )
+    parser.add_argument(
+        "--ci-fast",
+        action="store_true",
+        help="Tiny run for CI (skip pretrained, tiny fake dataset, 1 epoch)",
+    )
+    parser.add_argument("--num-workers", type=int, default=2, help="DataLoader workers")
 
     args = parser.parse_args()
 
@@ -411,13 +436,20 @@ def main():
         output_dir=args.output_dir,
         seed=args.seed,
         use_fakedata=args.fakedata,
-        use_pretrained=(not args.fakedata and not args.no_pretrained),
+        use_pretrained=(not args.fakedata and not args.no_pretrained and not args.ci_fast),
+        ci_fast=args.ci_fast,
+        num_workers=args.num_workers,
     )
 
     # Update training parameters
     trainer.num_epochs = args.epochs
     trainer.batch_size = args.batch_size
     trainer.learning_rate = args.lr
+
+    # Clamp CI fast mode params
+    if args.ci_fast:
+        args.epochs = min(args.epochs, 1)
+        args.batch_size = max(args.batch_size, 128)
 
     # Train model
     model = trainer.train()

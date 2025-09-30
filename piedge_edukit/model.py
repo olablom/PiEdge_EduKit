@@ -21,9 +21,7 @@ class MobileNetV2Classifier(nn.Module):
         # Load MobileNetV2 with optional pretrained weights.
         # Newer torchvision prefers explicit weights over deprecated 'pretrained'.
         try:
-            weights = (
-                models.MobileNet_V2_Weights.DEFAULT if pretrained else None
-            )
+            weights = models.MobileNet_V2_Weights.DEFAULT if pretrained else None
             self.backbone = models.mobilenet_v2(weights=weights)
         except Exception:
             # Fallback for older torchvision versions where 'weights' may not exist
