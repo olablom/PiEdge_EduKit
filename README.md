@@ -2,8 +2,9 @@
 
 ![CI](https://github.com/olablom/PiEdge_EduKit/actions/workflows/ci.yml/badge.svg)
 
-A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image classifier → export to ONNX → benchmark latency → drive a GPIO LED with hysteresis.  
-Primary language: **English**. Swedish mirror: **[README.sv.md](README.sv.md)**
+**Start here → [`index.html`](index.html)** | Swedish: **[README.sv.md](README.sv.md)**
+
+A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image classifier → export to ONNX → benchmark latency → drive a GPIO LED with hysteresis.
 
 ## Quick start (Python 3.12 only)
 
@@ -14,7 +15,8 @@ source .venv/bin/activate      # Linux/macOS
 # or: .\.venv\Scripts\Activate.ps1  # Windows
 
 # Run the micro-lesson (self-contained, FakeData)
-bash run_lesson.sh
+bash run_lesson.sh              # Linux/macOS
+# or: run_labs.bat              # Windows
 
 # Auto-verify (JSON receipt)
 python verify.py
@@ -23,23 +25,33 @@ python verify.py
 
 ## What you'll learn
 
-* Deterministic preprocessing + ONNX export (opset=17)
-* Latency benchmarking (p50/p95/mean/std)
-* (Optional) INT8 static quantization with comparison
-* GPIO inference with hysteresis + debounce (simulate/real)
+- Deterministic preprocessing + ONNX export (opset=17)
+- Latency benchmarking (p50/p95/mean/std)
+- (Optional) INT8 static quantization with comparison
+- GPIO inference with hysteresis + debounce (simulate/real)
 
 ## Data options
 
-* **No images needed:** `--fakedata`
-* **Synthetic images:** `python scripts/make_synthetic_dataset.py --root data`
-* Real images: `data/{class}/*.{jpg,png}` (see `DATA_LICENSES.md`)
+The pipeline accepts both layouts:
 
-## CLI (CPU is the golden path)
+- **Flat structure:** `data/<class>/*.{jpg,png}`
+- **Train/val structure:** `data/{train,val}/<class>/*.{jpg,png}`
+
+**No images needed:** Use `--fakedata` flag for quick testing.
+
+## CLI commands
 
 ```bash
-python -m piedge_edukit.train       --fakedata --output-dir ./models
-python -m piedge_edukit.benchmark   --fakedata --model-path ./models/model.onnx --warmup 50 --runs 200
+# Training
+python -m piedge_edukit.train --fakedata --output-dir ./models
+
+# Benchmarking
+python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 50 --runs 200
+
+# Quantization (optional)
 python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 25
+
+# Evaluation
 python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
 ```
 

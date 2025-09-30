@@ -129,8 +129,8 @@ python -m piedge_edukit.gpio_control --model-path ./models/model.onnx --data-pat
 
 ## Krav
 
-- **PC**: Python ≥3.10, PyTorch, ONNX Runtime
-- **Pi**: 64-bit OS (aarch64), Python ≥3.10, ONNX Runtime CPU
+- **PC**: Python 3.12 only, PyTorch, ONNX Runtime
+- **Pi**: 64-bit OS (aarch64), Python 3.12 only, ONNX Runtime CPU
 - **Hårdvara**: Raspberry Pi med GPIO-pin 17 för LED
 
 ## Troubleshooting
@@ -269,35 +269,6 @@ python smoke_test.py
 # Pi smoke test (minimal)
 python smoke_test.py pi
 ```
-
-## CLI-kommandon
-
-### Träning
-
-```bash
-python -m piedge_edukit.train --data-path <data> --output-dir <models> [--epochs N] [--batch-size N]
-```
-
-### Benchmark
-
-```bash
-python -m piedge_edukit.benchmark --model-path <model.onnx> --data-path <data> [--warmup N] [--runs N]
-```
-
-### GPIO-styrning
-
-```bash
-python -m piedge_edukit.gpio_control --model-path <model.onnx> --data-path <data> --target <klass> [--simulate] [--no-simulate] [--duration N]
-```
-
-**Viktiga flaggor:**
-
-- `--simulate` (default): Använd MockGPIO för PC-testning
-- `--no-simulate`: Använd riktig GPIO på Pi
-- `--target`: Målklass för GPIO-styrning (obligatorisk)
-- `--duration`: Körningstid i sekunder
-- `--warmup`: Antal warmup-körningar (default: 50)
-- `--runs`: Antal benchmark-körningar (default: 200)
 
 ## Artefakter
 

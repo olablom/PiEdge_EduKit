@@ -40,7 +40,7 @@ och detta projekt följer [Semantic Versioning](https://semver.org/spec/v2.0.0.h
 
 ### Technical
 
-- Python ≥3.10 krav
+- Python 3.12 only requirement
 - Pinned versions i requirements-pc.txt och requirements-pi.txt
 - Versioneringsstämplar i alla rapporter
 - Determinism med seeds och cudnn.deterministic=True
