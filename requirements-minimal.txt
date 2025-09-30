@@ -12,6 +12,8 @@ onnxruntime-silicon==1.18.0; platform_system == "Darwin" and platform_machine ==
 # Data processing
 Pillow==10.3.0
 pandas==2.2.2
+scikit-learn==1.4.2
+matplotlib==3.8.4
 
 # Progress bars
 tqdm==4.66.4

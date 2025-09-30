@@ -58,20 +58,22 @@ jobs:
         if: runner.os != 'Windows'
         shell: bash
         run: |
-          set -e
+          set -euxo pipefail
           python -V
           python -m venv .venv
           source .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements-minimal.txt
-          pip list
-
-      - name: Preflight info (bash)
-        if: runner.os != 'Windows'
-        shell: bash
-        run: |
-          source .venv/bin/activate
-          python -c "import onnxruntime as ort, sys, platform; print('ORT', ort.__version__, 'providers', ort.get_available_providers()); print('PY', sys.version); print(platform.platform())" || true
+          pip install -e .
+          python - <<'PY'
+import sys, platform
+print("PY:", sys.version)
+print("PLAT:", platform.platform())
+# hard sanity: these must import or the lesson cannot run
+import onnxruntime as ort, torch, torchvision
+print("ORT:", ort.__version__, "providers:", ort.get_available_providers())
+print("torch:", torch.__version__, "torchvision:", torchvision.__version__)
+PY
 
       - name: Run micro-lesson (bash)
         if: runner.os != 'Windows'
@@ -79,7 +81,7 @@ jobs:
         env:
           PYTHONHASHSEED: "0"
         run: |
-          set -e
+          set -euxo pipefail
           source .venv/bin/activate
           python -m piedge_edukit.train --fakedata --output-dir ./models
           python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
@@ -92,19 +94,15 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
+          $ErrorActionPreference = 'Stop'
           python -V
           python -m venv .venv
           .\.venv\Scripts\Activate.ps1
           python -m pip install --upgrade pip
           pip install -r requirements-minimal.txt
-          pip list
-
-      - name: Preflight info (PowerShell)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        run: |
-          .\.venv\Scripts\Activate.ps1
-          python -c "import onnxruntime as ort, sys, platform; print('ORT', ort.__version__, 'providers', ort.get_available_providers()); print('PY', sys.version); print(platform.platform())"
+          pip install -e .
+          python -c "import sys,platform;print('PY:',sys.version);print('PLAT:',platform.platform())"
+          python -c "import onnxruntime as ort, torch, torchvision; print('ORT:',ort.__version__, 'providers:', ort.get_available_providers()); print('torch:', torch.__version__, 'torchvision:', torchvision.__version__)"
 
       - name: Run micro-lesson (PowerShell)
         if: runner.os == 'Windows'
@@ -112,6 +110,7 @@ jobs:
         env:
           PYTHONHASHSEED: "0"
         run: |
+          $ErrorActionPreference = 'Stop'
           .\.venv\Scripts\Activate.ps1
           python -m piedge_edukit.train --fakedata --output-dir .\models
           python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
