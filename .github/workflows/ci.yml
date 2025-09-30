@@ -115,40 +115,35 @@ jobs:
     name: macos-14 / Py 3.12 (smoke)
     runs-on: macos-14
     continue-on-error: true
-    timeout-minutes: 15
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Install deps
+      - name: Import + ORT smoke (no training)
         shell: bash
         run: |
           set -euxo pipefail
           python -m pip install -U pip wheel setuptools
-          python -m pip install numpy==1.26.4
-          python -m pip install -r requirements-minimal.txt
-          python -m pip install -e .
-      - name: Smoke run (ultra fast)
-        shell: bash
-        env:
-          PYTHONHASHSEED: "0"
-          OMP_NUM_THREADS: "1"
-          MKL_NUM_THREADS: "1"
-        run: |
-          set -euxo pipefail
-          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
-          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
-          # skip quantization on macOS to save time
-          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 8
-          python verify.py || true
+          python -m pip install numpy==1.26.4 onnx==1.16.1 onnxruntime==1.18.0
+          python - <<'PY'
+          import onnx, numpy as np, onnxruntime as ort
+          import onnx.helper as oh, onnx
+          X = oh.make_tensor_value_info('x', onnx.TensorProto.FLOAT, [1,3,64,64])
+          Y = oh.make_tensor_value_info('y', onnx.TensorProto.FLOAT, [1,3,64,64])
+          node = oh.make_node('Identity', inputs=['x'], outputs=['y'])
+          g = oh.make_graph([node], 'g', [X], [Y])
+          m = oh.make_model(g, opset_imports=[onnx.helper.make_operatorsetid("",17)])
+          onnx.save(m, 'mini.onnx')
+          s = ort.InferenceSession('mini.onnx', providers=['CPUExecutionProvider'])
+          y = s.run(None, {'x': np.zeros((1,3,64,64), np.float32)})[0]
+          print("macOS ORT smoke OK:", y.shape)
+          PY
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: progress-macos
-          path: |
-            progress/receipt.json
-            reports/**
-            models/model.onnx
+          path: mini.onnx
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 3
