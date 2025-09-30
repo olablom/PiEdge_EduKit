@@ -436,7 +436,9 @@ def main():
         output_dir=args.output_dir,
         seed=args.seed,
         use_fakedata=args.fakedata,
-        use_pretrained=(not args.fakedata and not args.no_pretrained and not args.ci_fast),
+        use_pretrained=(
+            not args.fakedata and not args.no_pretrained and not args.ci_fast
+        ),
         ci_fast=args.ci_fast,
         num_workers=args.num_workers,
     )

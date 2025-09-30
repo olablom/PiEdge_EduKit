@@ -116,7 +116,9 @@ def main():
         "--fakedata", action="store_true", help="Use synthetic data instead of files"
     )
     ap.add_argument("--outdir", default="reports", help="Output dir for reports")
-    ap.add_argument("--limit", type=int, default=None, help="Limit number of samples for fast CI")
+    ap.add_argument(
+        "--limit", type=int, default=None, help="Limit number of samples for fast CI"
+    )
     args = ap.parse_args()
 
     outdir = Path(args.outdir)
