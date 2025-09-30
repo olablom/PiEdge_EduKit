@@ -1,0 +1,104 @@
+# filename: .github/workflows/ci.yml
+name: PiEdge EduKit CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lesson-ci:
+    name: "${{ matrix.os }} / Python 3.12"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-14]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Cache pip
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~\AppData\Local\pip\Cache
+          key: ${{ runner.os }}-py312-${{ hashFiles('requirements.txt') }}
+
+      - name: Create .venv
+        shell: bash
+        run: |
+          python -V
+          python -m venv .venv
+
+      - name: Install deps (Linux/macOS)
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          source .venv/bin/activate
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . || true  # om paketet finns
+
+      - name: Install deps (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install -e . 2>$null
+
+      # Kort, självförsörjande körning (CPU, fakedata) som speglar run_lesson men med mindre N
+      - name: Run micro-lesson (short CI pass) - Linux/macOS
+        if: runner.os != 'Windows'
+        shell: bash
+        env:
+          # om dina CLI stödjer kortare körningar via env, sätt dessa; annars låga flaggar direkt
+          CI_RUNS: "10"
+          CI_WARMUP: "5"
+        run: |
+          set -e
+          source .venv/bin/activate
+          python scripts/preflight.py || true
+          python -m piedge_edukit.train --fakedata --output-dir ./models
+          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 5 --runs 10
+          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 10 || true
+          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata
+          python verify.py
+
+      - name: Run micro-lesson (short CI pass) - Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          .\.venv\Scripts\Activate.ps1
+          python scripts\preflight.py 2>$null | Out-Null
+          python -m piedge_edukit.train --fakedata --output-dir .\models
+          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --warmup 5 --runs 10
+          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 10
+          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata
+          python verify.py
+
+      - name: Upload receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: progress-${{ matrix.os }}
+          path: |
+            progress/receipt.json
+            reports/latency_summary.txt
+            reports/quantization_comparison.csv
+            reports/eval_summary.txt
+            reports/confusion_matrix.png

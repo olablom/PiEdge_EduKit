@@ -1,5 +1,7 @@
 # PiEdge EduKit
 
+![CI](https://github.com/olablom/PiEdge_EduKit/actions/workflows/ci.yml/badge.svg)
+
 Ett reproducerbart undervisningskit för edge-ML på Raspberry Pi: träna liten bildklassificerare på PC → exportera till ONNX → benchmarka latens på Pi → styra GPIO (LED) med hysteresis.
 
 ## Snabbstart för lektion (30 min)
