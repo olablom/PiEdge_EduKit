@@ -21,12 +21,19 @@ if sys.version_info[:2] != (3, 12):
     sys.exit(2)
 
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent
 PROGRESS = ROOT / "progress"
 REPORTS = ROOT / "reports"
 MODELS = ROOT / "models"
+
+# VG-Compliance Criteria
+CRITERIA = {
+    "latency_p50_threshold_ms": 1.0,   # adjust as needed
+    "onnx_required": True,
+    "gpio_required": False,
+}
 
 
 def read_latency_summary(p: Path):
@@ -72,7 +79,7 @@ def main():
     """Main verification function."""
     PROGRESS.mkdir(exist_ok=True, parents=True)
     result = {
-        "timestamp": datetime.utcnow().isoformat() + "Z",
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "checks": [],
         "metrics": {},
         "pass": False,
@@ -188,8 +195,64 @@ def main():
         {"name": "evaluation_reports_exist", "ok": eval_ok, "reason": eval_reason}
     )
 
-    # PASS policy: all above true
-    passed = all(ch["ok"] for ch in result["checks"])
+    # Add criteria and latency metrics
+    result["criteria"] = CRITERIA
+    if lat_ok and lat:
+        result["metrics"]["latency_ms"] = {"p50": lat["p50"], "p95": lat["p95"]}
+    
+    # Baseline vs optimized comparison
+    baseline = lat["p50"] if lat_ok and lat and lat["p50"] else None
+    optimized = None
+    int8_ok = False
+    
+    # Try to get INT8 latency from quantization data
+    if quant_ok and quant:
+        try:
+            rows = quant["rows"]
+            header = quant["header"]
+            idx_model = next((i for i, h in enumerate(header) if "model" in h.lower()), None)
+            idx_p50 = next((i for i, h in enumerate(header) if "p50" in h.lower()), None)
+            
+            if idx_model is not None and idx_p50 is not None:
+                p50_data = {
+                    r[idx_model].strip().lower(): float(r[idx_p50]) if r[idx_p50] != "N/A" else None
+                    for r in rows
+                }
+                if "fp32" in p50_data and ("int8" in p50_data or "INT8" in p50_data):
+                    int8_key = "int8" if "int8" in p50_data else "INT8"
+                    if p50_data["fp32"] and p50_data[int8_key]:
+                        optimized = p50_data[int8_key]
+                        int8_ok = True
+        except Exception:
+            pass
+    
+    if baseline and optimized is None:
+        optimized = baseline  # fallback to FP32
+    
+    if baseline and optimized:
+        delta = optimized - baseline
+        result["comparisons"] = [{
+            "name": "baseline_vs_optimized_latency",
+            "metric": "latency_ms_p50",
+            "baseline": round(baseline, 3),
+            "optimized": round(optimized, 3),
+            "delta": round(delta, 3),
+            "note": "INT8 fallback to FP32" if not int8_ok else "INT8 succeeded"
+        }]
+    
+    # Discriminative thresholds
+    fail_reasons = []
+    if CRITERIA["onnx_required"] and not artifacts_ok:
+        fail_reasons.append("ONNX export failed")
+    if lat_ok and lat and lat["p50"] and lat["p50"] >= CRITERIA["latency_p50_threshold_ms"]:
+        fail_reasons.append(
+            f"p50 latency {lat['p50']:.3f} ms >= threshold {CRITERIA['latency_p50_threshold_ms']:.3f} ms"
+        )
+    
+    result["fail_reasons"] = fail_reasons
+    
+    # PASS policy: all checks pass AND no threshold violations
+    passed = all(ch["ok"] for ch in result["checks"]) and len(fail_reasons) == 0
     result["pass"] = bool(passed)
 
     # Write receipt & update lesson_progress
