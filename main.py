@@ -138,6 +138,21 @@ def launch_notebook(target: str):
 
     print("\nStarting Jupyter Notebook …")
     print(" ".join(cmd))
+    
+    # Show navigation instructions
+    print("\n" + "="*60)
+    print("🎓 PiEdge EduKit - Interactive Learning Path")
+    print("="*60)
+    print("📚 Lesson Sequence:")
+    print("  00_run_everything.ipynb    - Quick demo & setup")
+    print("  01_training_and_export.ipynb - CNN implementation & training")
+    print("  02_latency_benchmark.ipynb   - Performance measurement")
+    print("  03_quantization.ipynb        - Model compression")
+    print("  04_evaluate_and_verify.ipynb - Evaluation & reflection")
+    print("\n💡 Start with 00_run_everything.ipynb for a quick overview,")
+    print("   then work through 01-04 for hands-on learning!")
+    print("="*60)
+    
     subprocess.call(cmd)
 
 
@@ -150,18 +165,30 @@ def main():
 
     # Auto-clear outputs and trust the primary lesson notebook before launch
     from pathlib import Path
-    nb_path = Path(target).resolve() if not target.endswith("/") else Path(PRIMARY_NB).resolve()
+
+    nb_path = (
+        Path(target).resolve()
+        if not target.endswith("/")
+        else Path(PRIMARY_NB).resolve()
+    )
     if nb_path.exists():
         # 1) Clear saved outputs
-        subprocess.run([
-            sys.executable, "-m", "jupyter", "nbconvert",
-            "--ClearOutputPreprocessor.enabled=True",
-            "--inplace", str(nb_path),
-        ], check=False)
+        subprocess.run(
+            [
+                sys.executable,
+                "-m",
+                "jupyter",
+                "nbconvert",
+                "--ClearOutputPreprocessor.enabled=True",
+                "--inplace",
+                str(nb_path),
+            ],
+            check=False,
+        )
         # 2) Trust notebook
-        subprocess.run([
-            sys.executable, "-m", "jupyter", "trust", str(nb_path)
-        ], check=False)
+        subprocess.run(
+            [sys.executable, "-m", "jupyter", "trust", str(nb_path)], check=False
+        )
     launch_notebook(target)
 
 
