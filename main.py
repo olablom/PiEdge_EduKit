@@ -8,14 +8,22 @@ KERNEL_TITLE = "Python 3.12 (piedge)"
 PRIMARY_NB = os.path.join("labs", "00_run_everything.ipynb")
 FALLBACK_NB = os.path.join("labs", "01_training_and_export.ipynb")
 
+
 def fail(msg: str, code: int = 2):
     print(f"\nERROR: {msg}\n", file=sys.stderr)
     sys.exit(code)
 
+
 def ensure_py312():
-    if not (sys.version_info.major == REQUIRED_MAJOR and sys.version_info.minor == REQUIRED_MINOR):
-        fail(f"This lesson requires Python {REQUIRED_MAJOR}.{REQUIRED_MINOR}. "
-             f"Found {sys.version.split()[0]}. See README for install instructions.")
+    if not (
+        sys.version_info.major == REQUIRED_MAJOR
+        and sys.version_info.minor == REQUIRED_MINOR
+    ):
+        fail(
+            f"This lesson requires Python {REQUIRED_MAJOR}.{REQUIRED_MINOR}. "
+            f"Found {sys.version.split()[0]}. See README for install instructions."
+        )
+
 
 def warn_if_not_repo_venv():
     # Nice warning only; proceed anyway so beginners aren't blocked.
@@ -43,13 +51,15 @@ def warn_if_not_repo_venv():
             "           PowerShell: .\\.venv\\Scripts\\Activate.ps1\n"
         )
 
+
 def ensure_editable_installed():
     """Ensure the project package is installed in editable mode for the current interpreter."""
     try:
         import piedge_edukit  # noqa: F401
     except Exception:
         print("Installing package in editable mode...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."]) 
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
+
 
 def pip_install_if_missing(module: str, pip_name: str | None = None):
     pip_name = pip_name or module
@@ -59,6 +69,7 @@ def pip_install_if_missing(module: str, pip_name: str | None = None):
         print(f"Installing {pip_name} …")
         subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
 
+
 def ensure_kernel():
     # make sure jupyter + notebook + ipykernel exist
     pip_install_if_missing("jupyter")
@@ -67,15 +78,29 @@ def ensure_kernel():
 
     # list kernels
     try:
-        out = subprocess.check_output([sys.executable, "-m", "jupyter", "kernelspec", "list"], text=True, errors="ignore")
+        out = subprocess.check_output(
+            [sys.executable, "-m", "jupyter", "kernelspec", "list"],
+            text=True,
+            errors="ignore",
+        )
         if KERNEL_NAME not in out:
             print(f"Installing Jupyter kernel '{KERNEL_NAME}' …")
-            subprocess.check_call([
-                sys.executable, "-m", "ipykernel", "install",
-                "--user", "--name", KERNEL_NAME, "--display-name", KERNEL_TITLE
-            ])
+            subprocess.check_call(
+                [
+                    sys.executable,
+                    "-m",
+                    "ipykernel",
+                    "install",
+                    "--user",
+                    "--name",
+                    KERNEL_NAME,
+                    "--display-name",
+                    KERNEL_TITLE,
+                ]
+            )
     except FileNotFoundError:
         fail("Could not find 'jupyter' on PATH. Activate .venv or install Jupyter.")
+
 
 def resolve_target_notebook() -> str:
     if os.path.exists(PRIMARY_NB):
@@ -88,13 +113,17 @@ def resolve_target_notebook() -> str:
         return "labs/"
     fail("Could not find 'labs' folder. Are you running from the repo root?")
 
+
 def launch_notebook(target: str):
     # Use Jupyter Server flags (Notebook 7+) and pass the file path directly
     web_target = target.replace(os.sep, "/")
     is_dir = web_target.endswith("/")
 
     cmd = [
-        sys.executable, "-m", "jupyter", "notebook",
+        sys.executable,
+        "-m",
+        "jupyter",
+        "notebook",
         "--ServerApp.open_browser=True",
         "--ServerApp.root_dir=.",
     ]
@@ -111,13 +140,30 @@ def launch_notebook(target: str):
     print(" ".join(cmd))
     subprocess.call(cmd)
 
+
 def main():
     ensure_py312()
     warn_if_not_repo_venv()
     ensure_editable_installed()
     ensure_kernel()
     target = resolve_target_notebook()
+
+    # Auto-clear outputs and trust the primary lesson notebook before launch
+    from pathlib import Path
+    nb_path = Path(target).resolve() if not target.endswith("/") else Path(PRIMARY_NB).resolve()
+    if nb_path.exists():
+        # 1) Clear saved outputs
+        subprocess.run([
+            sys.executable, "-m", "jupyter", "nbconvert",
+            "--ClearOutputPreprocessor.enabled=True",
+            "--inplace", str(nb_path),
+        ], check=False)
+        # 2) Trust notebook
+        subprocess.run([
+            sys.executable, "-m", "jupyter", "trust", str(nb_path)
+        ], check=False)
     launch_notebook(target)
+
 
 if __name__ == "__main__":
     main()
