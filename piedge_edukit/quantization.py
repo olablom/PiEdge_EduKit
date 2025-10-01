@@ -414,10 +414,9 @@ class QuantizationBenchmark:
     def _get_package_version(self) -> str:
         """Get PiEdge EduKit package version."""
         try:
-            import pkg_resources
-
-            return pkg_resources.get_distribution("piedge-edukit").version
-        except:
+            from importlib.metadata import version, PackageNotFoundError
+            return version("piedge-edukit")
+        except PackageNotFoundError:
             return "Unknown"
 
     def _create_comparison_plot(self):
