@@ -27,6 +27,14 @@ def warn_if_not_repo_venv():
               "           Git Bash:   source .venv/Scripts/activate\n"
               "           PowerShell: .\\.venv\\Scripts\\Activate.ps1\n")
 
+def ensure_editable_installed():
+    """Ensure the project package is installed in editable mode for the current interpreter."""
+    try:
+        import piedge_edukit  # noqa: F401
+    except Exception:
+        print("Installing package in editable mode...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."]) 
+
 def pip_install_if_missing(module: str, pip_name: str | None = None):
     pip_name = pip_name or module
     try:
@@ -90,6 +98,7 @@ def launch_notebook(target: str):
 def main():
     ensure_py312()
     warn_if_not_repo_venv()
+    ensure_editable_installed()
     ensure_kernel()
     target = resolve_target_notebook()
     launch_notebook(target)
