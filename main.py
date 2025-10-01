@@ -1,256 +1,91 @@
 #!/usr/bin/env python3
-import os, sys, subprocess, pathlib, shutil
-from pathlib import Path
+import os, sys, subprocess, shutil
 
-ROOT = pathlib.Path(__file__).resolve().parent
-LABS = ROOT / "labs"
+REQUIRED_MAJOR = 3
+REQUIRED_MINOR = 12
 KERNEL_NAME = "piedge-edukit-312"
+KERNEL_TITLE = "Python 3.12 (piedge)"
+PRIMARY_NB = os.path.join("labs", "00_run_everything.ipynb")
+FALLBACK_NB = os.path.join("labs", "01_training_and_export.ipynb")
 
+def fail(msg: str, code: int = 2):
+    print(f"\nERROR: {msg}\n", file=sys.stderr)
+    sys.exit(code)
 
-def in_repo_venv() -> bool:
-    repo = Path(__file__).resolve().parent
-    venv_expected = (repo / ".venv").resolve()
+def ensure_py312():
+    if not (sys.version_info.major == REQUIRED_MAJOR and sys.version_info.minor == REQUIRED_MINOR):
+        fail(f"This lesson requires Python {REQUIRED_MAJOR}.{REQUIRED_MINOR}. "
+             f"Found {sys.version.split()[0]}. See README for install instructions.")
 
-    # Primary: use environment variable set by venv-activate
-    venv_env = os.environ.get("VIRTUAL_ENV")
-    if venv_env:
-        return Path(venv_env).resolve() == venv_expected
+def warn_if_not_repo_venv():
+    # Nice warning only; we still proceed so beginners aren't blocked.
+    venv = os.environ.get("VIRTUAL_ENV", "")
+    repo_venv = os.path.abspath(os.path.join(os.getcwd(), ".venv"))
+    if not venv or os.path.abspath(venv) != repo_venv:
+        print("WARNING: You don't seem to be using this repo's .venv.")
+        print("         Activate first for a clean run:\n"
+              "           Git Bash:   source .venv/Scripts/activate\n"
+              "           PowerShell: .\\.venv\\Scripts\\Activate.ps1\n")
 
-    # Fallback: compare sys.prefix (can point to Scripts/... on Windows)
+def pip_install_if_missing(module: str, pip_name: str | None = None):
+    pip_name = pip_name or module
     try:
-        return Path(sys.prefix).resolve() == venv_expected
+        __import__(module)
     except Exception:
-        pass
-    
-    # Additional check: if .venv exists and we're not in system Python
-    if venv_expected.exists():
-        # Check if we're running from within the venv directory structure
-        current_python = Path(sys.executable).resolve()
-        return venv_expected in current_python.parents or current_python.parent == venv_expected
-    
-    return False
-
-
-def get_python_executable():
-    """Get the correct Python executable, preferring venv if available."""
-    # Check if .venv exists and find the correct Python executable
-    venv_dir = ROOT / ".venv"
-    if venv_dir.exists():
-        # Try Linux/macOS structure first (check if file exists, even if symlink)
-        venv_python = venv_dir / "bin" / "python"
-        try:
-            if venv_python.is_file() or venv_python.is_symlink():
-                # Test if this Python actually works
-                result = subprocess.run([str(venv_python), "-c", "import sys; print('OK')"], 
-                                     capture_output=True, text=True, timeout=5)
-                if result.returncode == 0:
-                    return str(venv_python)
-        except (OSError, PermissionError, subprocess.TimeoutExpired):
-            pass
-        
-        # Try Windows structure
-        venv_python_win = venv_dir / "Scripts" / "python.exe"
-        try:
-            if venv_python_win.is_file():
-                # Test if this Python actually works
-                result = subprocess.run([str(venv_python_win), "-c", "import sys; print('OK')"], 
-                                     capture_output=True, text=True, timeout=5)
-                if result.returncode == 0:
-                    return str(venv_python_win)
-        except (OSError, PermissionError, subprocess.TimeoutExpired):
-            pass
-        
-        # Try Windows structure without .exe
-        venv_python_win_no_exe = venv_dir / "Scripts" / "python"
-        try:
-            if venv_python_win_no_exe.is_file():
-                # Test if this Python actually works
-                result = subprocess.run([str(venv_python_win_no_exe), "-c", "import sys; print('OK')"], 
-                                     capture_output=True, text=True, timeout=5)
-                if result.returncode == 0:
-                    return str(venv_python_win_no_exe)
-        except (OSError, PermissionError, subprocess.TimeoutExpired):
-            pass
-    # Fallback to sys.executable
-    return sys.executable
-
-
-PY = get_python_executable()
-
-
-def have(cmd):
-    return shutil.which(cmd) is not None
-
+        print(f"Installing {pip_name} …")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
 
 def ensure_kernel():
-    # Try to use existing kernelspec; otherwise install quickly.
+    # make sure jupyter + notebook + ipykernel exist
+    pip_install_if_missing("jupyter")
+    pip_install_if_missing("notebook", "notebook>=7")
+    pip_install_if_missing("ipykernel")
+
+    # list kernels
     try:
-        out = subprocess.check_output(
-            [PY, "-m", "jupyter", "kernelspec", "list"], text=True
-        )
-        if KERNEL_NAME in out:
-            return
-    except Exception:
-        pass
-    print("→ Installing Jupyter kernel for this environment...")
-    subprocess.check_call(
-        [PY, "-m", "pip", "install", "-q", "ipykernel", "papermill==2.6.0"]
-    )
-    subprocess.check_call(
-        [
-            PY,
-            "-m",
-            "ipykernel",
-            "install",
-            "--user",
-            "--name",
-            KERNEL_NAME,
-            "--display-name",
-            "Python 3.12 (piedge)",
-        ]
-    )
+        out = subprocess.check_output(["jupyter", "kernelspec", "list"], text=True, errors="ignore")
+        if KERNEL_NAME not in out:
+            print(f"Installing Jupyter kernel '{KERNEL_NAME}' …")
+            subprocess.check_call([
+                sys.executable, "-m", "ipykernel", "install",
+                "--user", "--name", KERNEL_NAME, "--display-name", KERNEL_TITLE
+            ])
+    except FileNotFoundError:
+        fail("Could not find 'jupyter' on PATH. Activate .venv or install Jupyter.")
 
+def resolve_target_notebook() -> str:
+    if os.path.exists(PRIMARY_NB):
+        return PRIMARY_NB
+    if os.path.exists(FALLBACK_NB):
+        return FALLBACK_NB
+    # fallback to labs root
+    if os.path.isdir("labs"):
+        # open into labs folder
+        return "labs/"
+    fail("Could not find 'labs' folder. Are you running from the repo root?")
 
-def pick_notebook():
-    nbs = sorted([p for p in LABS.glob("*.ipynb") if p.is_file()])
-    if not nbs:
-        print("No notebooks found in labs/.")
-        sys.exit(1)
-    print("\nChoose notebook:")
-    for i, nb in enumerate(nbs, 1):
-        print(f"  {i}) {nb.name}")
-    while True:
-        sel = input("Number: ").strip()
-        if sel.isdigit() and 1 <= int(sel) <= len(nbs):
-            return nbs[int(sel) - 1]
-        print("Invalid choice, try again.")
-
-
-def open_in_jupyter(nb_path: pathlib.Path, lab=True):
-    ensure_kernel()
-    # Start Jupyter in same process until user closes (CTRL+C)
-    if lab:
-        cmd = [PY, "-m", "jupyter", "lab", str(nb_path)]
+def launch_notebook(target: str):
+    # Jupyter Notebook wants /notebooks/<path> for default_url
+    web_target = target.replace(os.sep, "/")
+    if web_target.endswith("/"):
+        # folder view
+        default_url = f"/tree/{web_target}"
+        cmd = ["jupyter", "notebook", f"--NotebookApp.default_url={default_url}"]
     else:
-        cmd = [PY, "-m", "notebook", str(nb_path)]
-    print(f"\nOpening {'Jupyter Lab' if lab else 'Jupyter Notebook'}: {nb_path.name}\n")
+        default_url = f"/notebooks/{web_target}"
+        cmd = ["jupyter", "notebook", f"--NotebookApp.default_url={default_url}"]
+
+    print("\nStarting Jupyter Notebook …")
+    print(" ".join(cmd))
+    # Don't use check=True so server can keep running until user stops it
     subprocess.call(cmd)
 
-
-def run_with_papermill(nb_path: pathlib.Path):
-    ensure_kernel()
-    out = ROOT / "reports" / f"{nb_path.stem}_out.ipynb"
-    out.parent.mkdir(parents=True, exist_ok=True)
-
-    # Run without parameters (notebook works as-is). Add 'parameters' cell for -p support.
-    cmd = [PY, "-m", "papermill", str(nb_path), str(out), "-k", KERNEL_NAME]
-    print(f"\nRunning headless with papermill -> {out}")
-    subprocess.check_call(cmd)
-    print("Done! You can open the output notebook in Jupyter later.")
-
-
-def run_full_pipeline():
-    """Quick CLI run (terminal) with receipt."""
-    cmds = [
-        [
-            PY,
-            "-m",
-            "piedge_edukit.train",
-            "--fakedata",
-            "--no-pretrained",
-            "--epochs",
-            "1",
-            "--batch-size",
-            "256",
-            "--output-dir",
-            "./models",
-        ],
-        [
-            PY,
-            "-m",
-            "piedge_edukit.benchmark",
-            "--fakedata",
-            "--model-path",
-            "./models/model.onnx",
-            "--warmup",
-            "1",
-            "--runs",
-            "3",
-            "--providers",
-            "CPUExecutionProvider",
-        ],
-        [
-            PY,
-            "scripts/evaluate_onnx.py",
-            "--model",
-            "./models/model.onnx",
-            "--fakedata",
-            "--limit",
-            "16",
-        ],
-        [
-            PY,
-            "-m",
-            "piedge_edukit.quantization",
-            "--fakedata",
-            "--model-path",
-            "./models/model.onnx",
-            "--calib-size",
-            "32",
-        ],
-        [PY, "verify.py"],
-    ]
-    print("\nRunning full pipeline (terminal)...\n")
-    for c in cmds:
-        print(">", " ".join(c))
-        subprocess.check_call(c)
-
-
 def main():
-    # Quick check: are we running in the right venv?
-    if not in_repo_venv():
-        print(
-            "WARNING: You don't seem to be running the repo's .venv. Activate first:\n"
-            "    Git Bash:   source .venv/Scripts/activate\n"
-            "    PowerShell: .\\.venv\\Scripts\\Activate.ps1\n"
-        )
-
-    # Show which Python we're using
-    print(f"Using Python: {PY}")
-
-    # Menu
-    print("\n=== PiEdge EduKit - Terminal Menu ===")
-    print("1) Open notebook in Jupyter Lab")
-    print("2) Open notebook in Jupyter Notebook")
-    print("3) Run notebook headless (papermill) -> reports/*_out.ipynb")
-    print("4) Run FULL pipeline (terminal) + verify")
-    print("5) Exit")
-    choice = input("Choice: ").strip()
-
-    if choice == "1":
-        nb = pick_notebook()
-        open_in_jupyter(nb, lab=True)
-    elif choice == "2":
-        nb = pick_notebook()
-        open_in_jupyter(nb, lab=False)
-    elif choice == "3":
-        nb = pick_notebook()
-        run_with_papermill(nb)
-    elif choice == "4":
-        run_full_pipeline()
-    else:
-        print("Goodbye!")
-
+    ensure_py312()
+    warn_if_not_repo_venv()
+    ensure_kernel()
+    target = resolve_target_notebook()
+    launch_notebook(target)
 
 if __name__ == "__main__":
-    # Ensure labs/ exists
-    if not LABS.exists():
-        print("Cannot find 'labs/' directory. Are you in the repo root?")
-        sys.exit(1)
-    # Minimal Jupyter check
-    if not have("jupyter"):
-        print(
-            "WARNING: Jupyter doesn't seem to be on PATH. Install if you want to open UI:\n"
-            "    python -m pip install jupyter"
-        )
     main()

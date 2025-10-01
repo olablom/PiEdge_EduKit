@@ -37,18 +37,22 @@ A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image clas
 
 ## Quick start (Python 3.12 only)
 
-### Option 1: Terminal Menu (Recommended)
+### Quick Start (One Command)
+
 ```bash
 # Create and activate venv
 bash scripts/setup_venv.sh
 source .venv/bin/activate      # Linux/macOS
 # or: .\.venv\Scripts\Activate.ps1  # Windows
 
-# Interactive menu with all options
+# Start Jupyter Notebook with the lesson
 python main.py
 ```
 
-### Option 2: Direct CLI
+This opens `labs/00_run_everything.ipynb` directly in Jupyter Notebook - the complete interactive lesson!
+
+### Alternative: Direct CLI
+
 ```bash
 # Create and activate venv
 bash scripts/setup_venv.sh
