@@ -1,0 +1,50 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "piedge-edukit"
+version = "0.1.0"
+description = "Reproducerbart undervisningskit för edge-ML på Raspberry Pi"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+license = {text = "MIT"}
+authors = [
+    {name = "PiEdge EduKit Team"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "numpy==1.26.4",
+    "Pillow==10.3.0",
+    "matplotlib==3.8.4",
+    "onnx==1.16.1",
+    "onnxruntime==1.18.0",
+    "streamlit==1.36.0",
+    "torch==2.3.1",
+    "torchvision==0.18.1",
+    "pandas==2.2.2",
+    "scikit-learn==1.4.2",
+    "jupyter==1.0.0",
+    "ipykernel==6.29.4",
+    "tqdm==4.66.4",
+    "psutil==5.9.8",
+]
+
+[project.scripts]
+piedge-train = "piedge_edukit.train_cli:main"
+piedge-benchmark = "piedge_edukit.benchmark_cli:main"
+piedge-gpio = "piedge_edukit.gpio_cli:main"
+piedge-quantize = "piedge_edukit.quantization_cli:main"
+
+[tool.setuptools.packages.find]
+include = ["piedge_edukit*"]
+
+[tool.setuptools.package-data]
+piedge_edukit = ["*.json", "*.md"]

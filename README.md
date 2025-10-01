@@ -6,24 +6,30 @@
 
 A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image classifier → export to ONNX → benchmark latency → drive a GPIO LED with hysteresis.
 
-> **Prerequisites (hard requirement)**  
-> - **Python 3.12.x** (inte 3.11, inte 3.13)  
+> **Prerequisites (hard requirement)**
+>
+> - **Python 3.12.x** (inte 3.11, inte 3.13)
 > - Git Bash (Windows) eller bash (macOS/Linux)
 > - 3–4 GB ledigt disk-utrymme
 >
 > **Snabbinstallation**  
 > **Windows (Git Bash):**
+>
 > ```bash
 > winget install --id Python.Python.3.12 -e
 > # öppna NY Git Bash efter installation
 > ```
+>
 > **macOS (Homebrew):**
+>
 > ```bash
 > brew install python@3.12
 > echo 'export PATH="/opt/homebrew/opt/python@3.12/bin:$PATH"' >> ~/.bashrc
 > source ~/.bashrc
 > ```
+>
 > **Ubuntu:**
+>
 > ```bash
 > sudo add-apt-repository ppa:deadsnakes/ppa -y
 > sudo apt update && sudo apt install -y python3.12 python3.12-venv
@@ -31,6 +37,18 @@ A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image clas
 
 ## Quick start (Python 3.12 only)
 
+### Option 1: Terminal Menu (Recommended)
+```bash
+# Create and activate venv
+bash scripts/setup_venv.sh
+source .venv/bin/activate      # Linux/macOS
+# or: .\.venv\Scripts\Activate.ps1  # Windows
+
+# Interactive menu with all options
+python main.py
+```
+
+### Option 2: Direct CLI
 ```bash
 # Create and activate venv
 bash scripts/setup_venv.sh
