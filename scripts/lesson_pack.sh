@@ -52,6 +52,9 @@ if command -v zip >/dev/null 2>&1; then
       -x "*.DS_Store" \
       -x "Thumbs.db" \
       -x "*.egg-info/*" \
+      -x ".vscode/*" \
+      -x ".github/*" \
+      -x ".trash_*/*" \
       -x "progress/receipt.json" \
       -x "*.ipynb_checkpoints/*"
 else
@@ -60,9 +63,9 @@ else
 import os, zipfile, sys
 name = os.environ.get("ZIP_NAME", "VG_Ola_Blom_00000000.zip")
 paths = [
-  "index.html","run_lesson.sh","README.md","notebooks","src",
+  "index.html","index.sv.html","README.md","README.sv.md","run_lesson.sh","notebooks","src",
   "verify.py","scripts","requirements.txt","progress","LICENSE",
-  "DATA_LICENSES.md",".env.example"
+  "DATA_LICENSES.md",".env.example","models/.gitkeep","reports/.gitkeep","progress/.gitkeep"
 ]
 with zipfile.ZipFile(name, "w", zipfile.ZIP_DEFLATED) as z:
     for p in paths:

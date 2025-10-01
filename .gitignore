@@ -1,29 +1,35 @@
-# artifacts
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Packaging / build
+*.egg-info/
+build/
+dist/
+
+# Runtime artifacts
 models/*
 reports/*
 progress/*
+.notebooks_cache/
 !models/.gitkeep
 !reports/.gitkeep
 !progress/.gitkeep
 
-# caches
-__pycache__/
-.ipynb_checkpoints/
+# Editors / OS
+.vscode/
+.idea/
 .DS_Store
-*.pyc
-*.egg-info/
+Thumbs.db
 
-# zips
-/VG_*.zip
-/.trash_cleanup_*/
-
-# virtual environment
+# Virtual environment
 .venv/
 venv/
 
-# IDE
-.vscode/
-.idea/
+# Zips / releases
+VG_*.zip
+.trash_cleanup_*/
 
-# OS
-Thumbs.db
+# Jupyter
+.ipynb_checkpoints/
