@@ -1,0 +1,7 @@
+[lint]
+extend-select = ["E", "F", "B", "I", "UP"]
+exclude = ["labs/*.ipynb"]   # don't lint notebooks - they change frequently
+
+[format]
+exclude = ["labs/*.ipynb"]
+

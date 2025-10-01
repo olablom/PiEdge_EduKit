@@ -138,11 +138,11 @@ def launch_notebook(target: str):
 
     print("\nStarting Jupyter Notebook …")
     print(" ".join(cmd))
-    
+
     # Show navigation instructions
-    print("\n" + "="*60)
+    print("\n" + "=" * 60)
     print("🎓 PiEdge EduKit - Interactive Learning Path")
-    print("="*60)
+    print("=" * 60)
     print("📚 Lesson Sequence:")
     print("  00_run_everything.ipynb    - Quick demo & setup")
     print("  01_training_and_export.ipynb - CNN implementation & training")
@@ -151,8 +151,8 @@ def launch_notebook(target: str):
     print("  04_evaluate_and_verify.ipynb - Evaluation & reflection")
     print("\n💡 Start with 00_run_everything.ipynb for a quick overview,")
     print("   then work through 01-04 for hands-on learning!")
-    print("="*60)
-    
+    print("=" * 60)
+
     subprocess.call(cmd)
 
 

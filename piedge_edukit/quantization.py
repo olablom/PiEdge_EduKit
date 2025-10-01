@@ -415,6 +415,7 @@ class QuantizationBenchmark:
         """Get PiEdge EduKit package version."""
         try:
             from importlib.metadata import version, PackageNotFoundError
+
             return version("piedge-edukit")
         except PackageNotFoundError:
             return "Unknown"
