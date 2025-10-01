@@ -4,7 +4,6 @@ from pathlib import Path
 
 ROOT = pathlib.Path(__file__).resolve().parent
 LABS = ROOT / "labs"
-PY = sys.executable  # always venv's python if .venv is active
 KERNEL_NAME = "piedge-edukit-312"
 
 
@@ -22,6 +21,23 @@ def in_repo_venv() -> bool:
         return Path(sys.prefix).resolve() == venv_expected
     except Exception:
         return False
+
+
+def get_python_executable():
+    """Get the correct Python executable, preferring venv if available."""
+    # If we're in a venv, use that Python
+    if in_repo_venv():
+        venv_python = ROOT / ".venv" / "bin" / "python"
+        if venv_python.exists():
+            return str(venv_python)
+        # Windows fallback
+        venv_python_win = ROOT / ".venv" / "Scripts" / "python.exe"
+        if venv_python_win.exists():
+            return str(venv_python_win)
+    # Fallback to sys.executable
+    return sys.executable
+
+PY = get_python_executable()
 
 
 def have(cmd):
@@ -160,6 +176,10 @@ def main():
             "    Git Bash:   source .venv/Scripts/activate\n"
             "    PowerShell: .\\.venv\\Scripts\\Activate.ps1\n"
         )
+    
+    # Show which Python we're using
+    print(f"Using Python: {PY}")
+    
     # Menu
     print("\n=== PiEdge EduKit – Terminal Menu ===")
     print("1) Open notebook in Jupyter Lab")
