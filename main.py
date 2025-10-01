@@ -65,19 +65,24 @@ def resolve_target_notebook() -> str:
     fail("Could not find 'labs' folder. Are you running from the repo root?")
 
 def launch_notebook(target: str):
-    # Use Jupyter Server flags (Notebook 7+)
+    # Use Jupyter Server flags (Notebook 7+) and pass the file path directly
     web_target = target.replace(os.sep, "/")
-    if web_target.endswith("/"):
-        default_url = f"/tree/{web_target}"
-    else:
-        default_url = f"/notebooks/{web_target}"
+    is_dir = web_target.endswith("/")
 
     cmd = [
         "jupyter", "notebook",
-        f"--ServerApp.default_url={default_url}",
         "--ServerApp.open_browser=True",
         "--ServerApp.root_dir=.",
     ]
+
+    if is_dir:
+        # Folder view
+        cmd.append(f"--ServerApp.default_url=/tree/{web_target}")
+    else:
+        # Open the exact file and set default_url for consistency
+        cmd.append(f"--ServerApp.default_url=/notebooks/{web_target}")
+        cmd.append(target)
+
     print("\nStarting Jupyter Notebook …")
     print(" ".join(cmd))
     subprocess.call(cmd)
