@@ -20,22 +20,60 @@ def in_repo_venv() -> bool:
     try:
         return Path(sys.prefix).resolve() == venv_expected
     except Exception:
-        return False
+        pass
+    
+    # Additional check: if .venv exists and we're not in system Python
+    if venv_expected.exists():
+        # Check if we're running from within the venv directory structure
+        current_python = Path(sys.executable).resolve()
+        return venv_expected in current_python.parents or current_python.parent == venv_expected
+    
+    return False
 
 
 def get_python_executable():
     """Get the correct Python executable, preferring venv if available."""
-    # If we're in a venv, use that Python
-    if in_repo_venv():
-        venv_python = ROOT / ".venv" / "bin" / "python"
-        if venv_python.exists():
-            return str(venv_python)
-        # Windows fallback
-        venv_python_win = ROOT / ".venv" / "Scripts" / "python.exe"
-        if venv_python_win.exists():
-            return str(venv_python_win)
+    # Check if .venv exists and find the correct Python executable
+    venv_dir = ROOT / ".venv"
+    if venv_dir.exists():
+        # Try Linux/macOS structure first (check if file exists, even if symlink)
+        venv_python = venv_dir / "bin" / "python"
+        try:
+            if venv_python.is_file() or venv_python.is_symlink():
+                # Test if this Python actually works
+                result = subprocess.run([str(venv_python), "-c", "import sys; print('OK')"], 
+                                     capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    return str(venv_python)
+        except (OSError, PermissionError, subprocess.TimeoutExpired):
+            pass
+        
+        # Try Windows structure
+        venv_python_win = venv_dir / "Scripts" / "python.exe"
+        try:
+            if venv_python_win.is_file():
+                # Test if this Python actually works
+                result = subprocess.run([str(venv_python_win), "-c", "import sys; print('OK')"], 
+                                     capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    return str(venv_python_win)
+        except (OSError, PermissionError, subprocess.TimeoutExpired):
+            pass
+        
+        # Try Windows structure without .exe
+        venv_python_win_no_exe = venv_dir / "Scripts" / "python"
+        try:
+            if venv_python_win_no_exe.is_file():
+                # Test if this Python actually works
+                result = subprocess.run([str(venv_python_win_no_exe), "-c", "import sys; print('OK')"], 
+                                     capture_output=True, text=True, timeout=5)
+                if result.returncode == 0:
+                    return str(venv_python_win_no_exe)
+        except (OSError, PermissionError, subprocess.TimeoutExpired):
+            pass
     # Fallback to sys.executable
     return sys.executable
+
 
 PY = get_python_executable()
 
@@ -106,7 +144,7 @@ def run_with_papermill(nb_path: pathlib.Path):
 
     # Run without parameters (notebook works as-is). Add 'parameters' cell for -p support.
     cmd = [PY, "-m", "papermill", str(nb_path), str(out), "-k", KERNEL_NAME]
-    print(f"\nRunning headless with papermill → {out}")
+    print(f"\nRunning headless with papermill -> {out}")
     subprocess.check_call(cmd)
     print("Done! You can open the output notebook in Jupyter later.")
 
@@ -172,19 +210,19 @@ def main():
     # Quick check: are we running in the right venv?
     if not in_repo_venv():
         print(
-            "⚠️  You don't seem to be running the repo's .venv. Activate first:\n"
+            "WARNING: You don't seem to be running the repo's .venv. Activate first:\n"
             "    Git Bash:   source .venv/Scripts/activate\n"
             "    PowerShell: .\\.venv\\Scripts\\Activate.ps1\n"
         )
-    
+
     # Show which Python we're using
     print(f"Using Python: {PY}")
-    
+
     # Menu
-    print("\n=== PiEdge EduKit – Terminal Menu ===")
+    print("\n=== PiEdge EduKit - Terminal Menu ===")
     print("1) Open notebook in Jupyter Lab")
     print("2) Open notebook in Jupyter Notebook")
-    print("3) Run notebook headless (papermill) → reports/*_out.ipynb")
+    print("3) Run notebook headless (papermill) -> reports/*_out.ipynb")
     print("4) Run FULL pipeline (terminal) + verify")
     print("5) Exit")
     choice = input("Choice: ").strip()
@@ -212,7 +250,7 @@ if __name__ == "__main__":
     # Minimal Jupyter check
     if not have("jupyter"):
         print(
-            "⚠️  Jupyter doesn't seem to be on PATH. Install if you want to open UI:\n"
+            "WARNING: Jupyter doesn't seem to be on PATH. Install if you want to open UI:\n"
             "    python -m pip install jupyter"
         )
     main()
