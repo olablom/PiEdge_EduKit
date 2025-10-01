@@ -18,14 +18,30 @@ def ensure_py312():
              f"Found {sys.version.split()[0]}. See README for install instructions.")
 
 def warn_if_not_repo_venv():
-    # Nice warning only; we still proceed so beginners aren't blocked.
-    venv = os.environ.get("VIRTUAL_ENV", "")
+    # Nice warning only; proceed anyway so beginners aren't blocked.
     repo_venv = os.path.abspath(os.path.join(os.getcwd(), ".venv"))
-    if not venv or os.path.abspath(venv) != repo_venv:
+    venv_env = os.environ.get("VIRTUAL_ENV", "")
+
+    def samepath(a: str, b: str) -> bool:
+        try:
+            return os.path.samefile(a, b)
+        except Exception:
+            return os.path.abspath(a) == os.path.abspath(b)
+
+    looks_ok = False
+    if venv_env:
+        looks_ok = samepath(venv_env, repo_venv)
+    else:
+        # Fallback: sys.prefix should live under .venv
+        looks_ok = repo_venv in os.path.abspath(sys.prefix)
+
+    if not looks_ok:
         print("WARNING: You don't seem to be using this repo's .venv.")
-        print("         Activate first for a clean run:\n"
-              "           Git Bash:   source .venv/Scripts/activate\n"
-              "           PowerShell: .\\.venv\\Scripts\\Activate.ps1\n")
+        print(
+            "         Activate first for a clean run:\n"
+            "           Git Bash:   source .venv/bin/activate\n"
+            "           PowerShell: .\\.venv\\Scripts\\Activate.ps1\n"
+        )
 
 def ensure_editable_installed():
     """Ensure the project package is installed in editable mode for the current interpreter."""
@@ -51,7 +67,7 @@ def ensure_kernel():
 
     # list kernels
     try:
-        out = subprocess.check_output(["jupyter", "kernelspec", "list"], text=True, errors="ignore")
+        out = subprocess.check_output([sys.executable, "-m", "jupyter", "kernelspec", "list"], text=True, errors="ignore")
         if KERNEL_NAME not in out:
             print(f"Installing Jupyter kernel '{KERNEL_NAME}' …")
             subprocess.check_call([
@@ -78,7 +94,7 @@ def launch_notebook(target: str):
     is_dir = web_target.endswith("/")
 
     cmd = [
-        "jupyter", "notebook",
+        sys.executable, "-m", "jupyter", "notebook",
         "--ServerApp.open_browser=True",
         "--ServerApp.root_dir=.",
     ]
