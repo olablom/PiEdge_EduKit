@@ -20,3 +20,7 @@ tqdm==4.66.4
 
 # System info
 psutil==5.9.8
+
+# Jupyter widgets for interactive timers
+ipywidgets>=8.1
+jupyterlab-widgets>=3.0
