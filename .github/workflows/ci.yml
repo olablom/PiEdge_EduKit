@@ -35,6 +35,18 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install -r requirements.txt
           python -m pip install -e .
+      - name: Run micro-lesson (Linux)
+        shell: bash
+        env:
+          PYTHONHASHSEED: "0"
+          OMP_NUM_THREADS: "1"
+          MKL_NUM_THREADS: "1"
+        run: |
+          set -euxo pipefail
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
+          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
+          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 16
+          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 16
       - name: Verify
         run: python verify.py
       - name: Upload receipt
@@ -66,6 +78,12 @@ jobs:
           python -m pip install --upgrade pip wheel setuptools
           python -m pip install -r requirements.txt
           python -m pip install -e .
+      - name: Run micro-lesson (Windows)
+        run: |
+          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir .\models
+          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --providers CPUExecutionProvider --warmup 1 --runs 3
+          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 16
+          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata --limit 16
       - name: Verify
         run: python verify.py
       - name: Upload receipt
