@@ -6,8 +6,15 @@
 <body>
     <h1>PiEdge EduKit — Self-contained Micro-lesson (~30 min)</h1>
 
-    <p><b>Purpose:</b> Train a tiny image classifier, export to ONNX, benchmark CPU latency and compare FP32 vs INT8. End with auto-verification that generates JSON receipt.</p>
+    <p><b>Purpose:</b> Train a tiny image classifier, export to ONNX, benchmark CPU latency and compare FP32 vs INT8.
+        End with auto-verification that generates JSON receipt.</p>
     <p><a href="index.sv.html">Svenska versionen</a></p>
+
+    <h2>Time Budget</h2>
+    <p>Approx. <strong>~30 minutes</strong> of active time, with fast defaults (1 epoch, small batches).</p>
+
+    <h2>Hardware Notes</h2>
+    <p>This lesson runs on CPU by default. GPU is optional; if used, ensure compatible drivers/toolkits and ≥16 GB VRAM for large models. The verification criteria do not require a GPU.</p>
 
     <h2>Prerequisites</h2>
     <ul>
@@ -25,7 +32,8 @@ source .venv/bin/activate
 .venv\Scripts\Activate.ps1
 </pre>
     <details>
-        <summary>Hint</summary>If pip is missing, run <code>python -m ensurepip --upgrade</code> before installation.<br>
+        <summary>Hint</summary>If pip is missing, run <code>python -m ensurepip --upgrade</code> before
+        installation.<br>
         Alternative with uv: <code>uv venv && source .venv/bin/activate && uv pip install -r requirements.txt</code>
     </details>
 
@@ -50,8 +58,10 @@ bash run_lesson.sh
 
     <h2>Common pitfalls</h2>
     <ul>
-        <li><b>Apple Silicon:</b> We install <code>onnxruntime-silicon</code> automatically via environment markers.</li>
-        <li><b>Windows PowerShell:</b> Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> to enable venv scripts. For .bat files: run <code>run_lesson.bat</code> directly.</li>
+        <li><b>Apple Silicon:</b> We install <code>onnxruntime-silicon</code> automatically via environment markers.
+        </li>
+        <li><b>Windows PowerShell:</b> Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> to enable
+            venv scripts. For .bat files: run <code>run_lesson.bat</code> directly.</li>
         <li><b>Python 3.12:</b> Ensure Python 3.12 is installed. Check with <code>python --version</code>.</li>
     </ul>
 
@@ -66,6 +76,9 @@ bash run_lesson.sh
     <h2>Package for submission</h2>
     <p>Zip requirement: <code>VG_Firstname_Lastname_YYYYMMDD.zip</code>. Include entire project root.</p>
     <p>Use: <code>bash scripts/lesson_pack.sh</code> for automatic packaging.</p>
+
+    <h2>For instructors</h2>
+    <p><a href="RUBRIC.md">📋 Grading rubric</a> — Objective scoring guide for student submissions.</p>
 </body>
 
 </html>

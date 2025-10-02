@@ -43,8 +43,9 @@ piedge-benchmark = "piedge_edukit.benchmark_cli:main"
 piedge-gpio = "piedge_edukit.gpio_cli:main"
 piedge-quantize = "piedge_edukit.quantization_cli:main"
 
-[tool.setuptools.packages.find]
-include = ["piedge_edukit*"]
+[tool.setuptools]
+packages = ["piedge_edukit"]
+package-dir = {"" = "src"}
 
 [tool.setuptools.package-data]
 piedge_edukit = ["*.json", "*.md"]

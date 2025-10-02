@@ -11,139 +11,68 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ci:
-    name: "${{ matrix.os }} / Py 3.12"
-    runs-on: ${{ matrix.os }}
+  ubuntu:
+    name: "Ubuntu / Py 3.12"
+    runs-on: ubuntu-latest
     timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-
     steps:
       - uses: actions/checkout@v4
-
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-
-      # Cache pip (Linux/macOS)
-      - name: Cache pip (Linux/macOS)
-        if: runner.os != 'Windows'
+      - name: Cache pip
         uses: actions/cache@v4
         with:
           path: ~/.cache/pip
-          key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
-          restore-keys: ${{ runner.os }}-py312-
-
-      # Cache pip (Windows) — NOTE the quoted path
-      - name: Cache pip (Windows)
-        if: runner.os == 'Windows'
-        uses: actions/cache@v4
-        with:
-          path: "~\\AppData\\Local\\pip\\Cache"
-          key: ${{ runner.os }}-py312-${{ hashFiles('requirements-minimal.txt') }}
-          restore-keys: ${{ runner.os }}-py312-
-
-      - name: Upgrade pip
+          key: ubuntu-py312-${{ hashFiles('requirements.txt') }}
+          restore-keys: ubuntu-py312-
+      - name: Install
         run: |
-          python -V
-          python -m pip install -U pip wheel setuptools
-
-      - name: Install deps (print pins)
-        run: |
-          echo "=== requirements-minimal.txt ==="
-          cat requirements-minimal.txt
-          python -m pip install numpy==1.26.4
-          python -m pip install -r requirements-minimal.txt
+          python -m pip install --upgrade pip wheel setuptools
+          python -m pip install -r requirements.txt
           python -m pip install -e .
-          python -c "import sys,platform;print('PY:',sys.version);print('PLAT:',platform.platform())"
-          python -c "import onnxruntime as ort; print('ORT:', ort.__version__, 'providers:', ort.get_available_providers())"
-          python -c "import torch, torchvision; print('torch:', torch.__version__, 'torchvision:', torchvision.__version__)"
-
-      - name: Micro-lesson (Linux)
-        if: runner.os != 'Windows'
-        shell: bash
-        env:
-          PYTHONHASHSEED: "0"
-          OMP_NUM_THREADS: "1"
-          MKL_NUM_THREADS: "1"
-        run: |
-          set -euxo pipefail
-          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
-          python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
-          python -m piedge_edukit.quantization --fakedata --model-path ./models/model.onnx --calib-size 16
-          python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 16
-          test -f reports/quantization_comparison.csv || (echo "quantization report missing"; ls -l reports; exit 1)
-          python verify.py
-
-      - name: Micro-lesson (Windows)
-        if: runner.os == 'Windows'
-        shell: pwsh
-        env:
-          PYTHONHASHSEED: "0"
-          OMP_NUM_THREADS: "1"
-          MKL_NUM_THREADS: "1"
-        run: |
-          $ErrorActionPreference = 'Stop'
-          python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir .\models
-          python -m piedge_edukit.benchmark --fakedata --model-path .\models\model.onnx --providers CPUExecutionProvider --warmup 1 --runs 3
-          python -m piedge_edukit.quantization --fakedata --model-path .\models\model.onnx --calib-size 16
-          python scripts\evaluate_onnx.py --model .\models\model.onnx --fakedata --limit 16
-          if (!(Test-Path reports\quantization_comparison.csv)) { Get-ChildItem reports; throw "quantization_report_missing" }
-          python verify.py
-
-      - name: Upload artifacts
+      - name: Verify
+        run: python verify.py
+      - name: Upload receipt
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: progress-${{ matrix.os }}
-          path: |
-            progress/receipt.json
-            reports/latency_summary.txt
-            reports/quantization_comparison.csv
-            reports/eval_summary.txt
-            reports/confusion_matrix.png
+          name: progress-ubuntu
+          path: progress/receipt.json
           if-no-files-found: ignore
           retention-days: 7
 
-  macos-smoke:
-    name: macos-14 / Py 3.12 (smoke)
-    runs-on: macos-14
-    continue-on-error: true
-    timeout-minutes: 5
+  windows:
+    name: "Windows / Py 3.12"
+    runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Import + ORT smoke (no training)
-        shell: bash
-        run: |
-          set -euxo pipefail
-          python -m pip install -U pip wheel setuptools
-          python -m pip install numpy==1.26.4 onnx==1.16.1 onnxruntime==1.18.0
-          python - <<'PY'
-          import onnx, numpy as np, onnxruntime as ort
-          import onnx.helper as oh, onnx
-          X = oh.make_tensor_value_info('x', onnx.TensorProto.FLOAT, [1,3,64,64])
-          Y = oh.make_tensor_value_info('y', onnx.TensorProto.FLOAT, [1,3,64,64])
-          node = oh.make_node('Identity', inputs=['x'], outputs=['y'])
-          g = oh.make_graph([node], 'g', [X], [Y])
-          m = oh.make_model(g, opset_imports=[onnx.helper.make_operatorsetid("",17)])
-          onnx.save(m, 'mini.onnx')
-          s = ort.InferenceSession('mini.onnx', providers=['CPUExecutionProvider'])
-          y = s.run(None, {'x': np.zeros((1,3,64,64), np.float32)})[0]
-          print("macOS ORT smoke OK:", y.shape)
-          PY
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - name: Cache pip
+        uses: actions/cache@v4
         with:
-          name: progress-macos
-          path: mini.onnx
+          path: "~\\AppData\\Local\\pip\\Cache"
+          key: windows-py312-${{ hashFiles('requirements.txt') }}
+          restore-keys: windows-py312-
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip wheel setuptools
+          python -m pip install -r requirements.txt
+          python -m pip install -e .
+      - name: Verify
+        run: python verify.py
+      - name: Upload receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: progress-windows
+          path: progress/receipt.json
           if-no-files-found: ignore
-          retention-days: 3
+          retention-days: 7

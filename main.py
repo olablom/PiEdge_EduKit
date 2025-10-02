@@ -5,8 +5,8 @@ REQUIRED_MAJOR = 3
 REQUIRED_MINOR = 12
 KERNEL_NAME = "piedge-edukit-312"
 KERNEL_TITLE = "Python 3.12 (piedge)"
-PRIMARY_NB = os.path.join("labs", "00_run_everything.ipynb")
-FALLBACK_NB = os.path.join("labs", "01_training_and_export.ipynb")
+PRIMARY_NB = os.path.join("notebooks", "00_run_everything.ipynb")
+FALLBACK_NB = os.path.join("notebooks", "01_training_and_export.ipynb")
 
 
 def fail(msg: str, code: int = 2):
@@ -133,7 +133,7 @@ def launch_notebook(target: str):
         cmd.append(f"--ServerApp.default_url=/tree/{web_target}")
     else:
         # Open the exact file and set default_url for consistency
-        cmd.append(f"--ServerApp.default_url=/notebooks/{web_target}")
+        cmd.append(f"--ServerApp.default_url=/notebooks/{os.path.basename(web_target)}")
         cmd.append(target)
 
     print("\nStarting Jupyter Notebook …")
