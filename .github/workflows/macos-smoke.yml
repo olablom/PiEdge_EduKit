@@ -1,27 +1,27 @@
 name: macOS Smoke Test
 
 on:
-  workflow_dispatch:  # Only run manually when needed
-  schedule:
-    - cron: '0 6 * * 1'  # Weekly on Monday at 6 AM UTC
+    workflow_dispatch: # Only run manually when needed
+    schedule:
+        - cron: "0 6 * * 1" # Weekly on Monday at 6 AM UTC
 
 jobs:
-  macos-smoke:
-    name: "macOS / Py 3.12 (smoke)"
-    runs-on: macos-14
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Minimal import smoke
-        run: |
-          python -c "print('Python OK'); import sys; print(sys.version)"
-          python - <<'PY'
-          try:
-              import numpy, onnx
-              print("Imports OK:", numpy.__version__, onnx.__version__)
-          except Exception as e:
-              print("Smoke failed:", e); raise
-          PY
+    macos-smoke:
+        name: "macOS / Py 3.12 (smoke)"
+        runs-on: macos-14
+        timeout-minutes: 15
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with:
+                  python-version: "3.12"
+            - name: Minimal import smoke
+              run: |
+                  python -c "print('Python OK'); import sys; print(sys.version)"
+                  python - <<'PY'
+                  try:
+                      import numpy, onnx
+                      print("Imports OK:", numpy.__version__, onnx.__version__)
+                  except Exception as e:
+                      print("Smoke failed:", e); raise
+                  PY
