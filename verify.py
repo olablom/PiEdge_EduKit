@@ -28,7 +28,7 @@ PROGRESS = ROOT / "progress"
 REPORTS = ROOT / "reports"
 MODELS = ROOT / "models"
 
-# VG-Compliance Criteria
+# Verification criteria
 CRITERIA = {
     "latency_p50_threshold_ms": 1.0,   # adjust as needed
     "onnx_required": True,

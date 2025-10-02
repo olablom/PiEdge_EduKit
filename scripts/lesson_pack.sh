@@ -4,7 +4,7 @@ set -euo pipefail
 
 # Get current date for zip naming
 DATE=$(date +%Y%m%d)
-ZIP_NAME="VG_Ola_Blom_${DATE}.zip"
+ZIP_NAME="Lesson_PiEdge_${DATE}.zip"
 
 echo "[pack] Creating lesson package: ${ZIP_NAME}"
 
@@ -61,7 +61,7 @@ else
   echo "[pack] 'zip' not found, using Python zipfile fallback"
   "$VENV_PY" - <<'PY'
 import os, zipfile, sys
-name = os.environ.get("ZIP_NAME", "VG_Ola_Blom_00000000.zip")
+name = os.environ.get("ZIP_NAME", "Lesson_PiEdge_00000000.zip")
 paths = [
   "index.html","index.sv.html","README.md","README.sv.md","run_lesson.sh","notebooks","src",
   "verify.py","scripts","requirements.txt","progress","LICENSE",
@@ -84,5 +84,4 @@ fi
 echo "[pack] Package created: ${ZIP_NAME}"
 echo "[pack] Size: $(du -h "${ZIP_NAME}" | cut -f1)"
 echo ""
-echo "To submit: Upload ${ZIP_NAME} to your assignment portal."
-echo "Note: Remember to replace 'Firstname_Lastname' with your actual name!"
+echo "To submit: Upload ${ZIP_NAME} to your portal."

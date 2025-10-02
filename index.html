@@ -62,23 +62,16 @@ bash run_lesson.sh
         </li>
         <li><b>Windows PowerShell:</b> Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> to enable
             venv scripts. For .bat files: run <code>run_lesson.bat</code> directly.</li>
+        <li><b>Windows venv issues:</b> If <code>bash scripts/setup_venv.sh</code> fails with permission errors, try <code>py -3.12 -m pip install --user -r requirements.txt</code> and <code>py -3.12 -m pip install --user -e .</code> instead.</li>
         <li><b>Python 3.12:</b> Ensure Python 3.12 is installed. Check with <code>python --version</code>.</li>
     </ul>
 
-    <h2>Bonus</h2>
-    <p>Run <code>streamlit run app.py</code> (optional) for a simple dashboard that visualizes artifacts.</p>
-
-    <h3>GPU support (optional)</h3>
-    <p>For GPU benchmarking, use <code>--providers CUDAExecutionProvider,CPUExecutionProvider</code>:</p>
-    <pre>python -m piedge_edukit.benchmark --model-path ./models/model.onnx --fakedata --providers CUDAExecutionProvider CPUExecutionProvider</pre>
-    <p><strong>Note:</strong> GPU support is optional. CPU is the golden path and fulfills all requirements.</p>
-
     <h2>Package for submission</h2>
-    <p>Zip requirement: <code>VG_Firstname_Lastname_YYYYMMDD.zip</code>. Include entire project root.</p>
+    <p>Zip name suggestion: <code>Lesson_PiEdge_YYYYMMDD.zip</code>. Include the entire project root.</p>
     <p>Use: <code>bash scripts/lesson_pack.sh</code> for automatic packaging.</p>
 
     <h2>For instructors</h2>
-    <p><a href="RUBRIC.md">📋 Grading rubric</a> — Objective scoring guide for student submissions.</p>
+    <p><a href="RUBRIC.md">Grading rubric</a> — Objective scoring guide for student submissions.</p>
 </body>
 
 </html>
