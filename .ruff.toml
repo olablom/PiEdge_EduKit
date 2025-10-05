@@ -2,20 +2,22 @@
 line-length = 120
 
 [lint]
-# Vanliga regler för källkod
 select = ["E", "F", "W", "I", "B", "UP"]
-ignore = ["E203"]  # behåll PEP8-kompatibilitet med black, om du använder det
+ignore = ["E203"]
 
-# Släpp efter i notebooks där cell-beteende ger falsklarm
+# Släpp efter i notebooks – typiska "falsklarm" i Jupyter
 per-file-ignores = {
   "notebooks/*.ipynb" = [
-    "E501",  # long lines i markdown/kodceller
-    "I001",  # import order (irrelevant i celler)
-    "F401",  # imported but unused (används ofta i annan cell)
-    "F811",  # redefinition (vanligt i celler)
-    "F841",  # assigned but never used
-    "B007",  # loop variable not used
-    "F541",  # f-string without placeholders
-    "UP015", # unnecessary open mode (kosmetiskt)
+    "E501", # long lines i celler/markdown
+    "I001", # import order
+    "F401", # imported but unused (används i annan cell)
+    "F811", # redefinition mellan celler
+    "F841", # assigned but never used
+    "F821", # undefined name (defineras i annan cell)
+    "E701", # multiple statements on one line (colon)
+    "E702", # multiple statements on one line (semicolon)
+    "F541", # f-string without placeholders
+    "E722", # bare except (ok i demo-celler)
+    "UP015" # kosmetik
   ],
 }
