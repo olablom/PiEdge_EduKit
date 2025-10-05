@@ -38,21 +38,49 @@ python scripts/preflight.py
 
 echo "[run] Starting micro-lesson (see index.html for instructions)"
 
-# Training
+# Ensure the package is available inside this venv
+echo "[run] Installing package..."
+python -m pip install --upgrade pip >/dev/null 2>&1 || true
+# Prefer editable install (works with pyproject.toml)
+if ! python -m pip install -e . >/dev/null 2>&1; then
+  # Fallback: use source directly
+  export PYTHONPATH="$(pwd)/src:${PYTHONPATH}"
+  echo "[run] Using PYTHONPATH fallback"
+else
+  echo "[run] Package installed successfully"
+fi
+
+# Training (Smoke Test mode)
 echo "[run] Training model..."
-python -m piedge_edukit.train --ci-fast --no-pretrained || echo "[run] Training failed, continuing..."
+python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models || echo "[run] Training failed, continuing..."
 
-# Benchmark
+# Benchmark (Smoke Test mode)
 echo "[run] Starting latency benchmark..."
-python -m piedge_edukit.benchmark --ci-fast || echo "[run] Benchmark failed, continuing..."
+python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider || echo "[run] Benchmark failed, continuing..."
 
-# Quantization
+# Quantization (may fail, that's OK)
 echo "[run] Starting quantization benchmark..."
-python -m piedge_edukit.quantization --ci-fast || echo "[run] Quantization failed, continuing..."
 
-# Evaluation
+# Auto-fallback: create synthetic calibration data if data/train is missing
+if [ ! -d "data/train" ]; then
+  echo "[run] data/train saknas → skapar syntetiskt kalibreringsset"
+  python - <<'PY'
+from PIL import Image
+import numpy as np, os
+for cls in ['class0','class1']:
+    d=os.path.join('data','train',cls); os.makedirs(d, exist_ok=True)
+    for i in range(16):
+        arr=(np.random.rand(64,64,3)*255).astype('uint8')
+        Image.fromarray(arr).save(os.path.join(d,f'{i}.png'))
+print("Created synthetic calibration set (32 imgs)")
+PY
+fi
+
+python -m piedge_edukit.quantization --data-path data/train --model-path ./models/model.onnx --calib-size 32 || echo "[run] Quantization failed (this is OK), continuing..."
+
+# Evaluation (Smoke Test mode)
 echo "[run] Running evaluation..."
-python scripts/evaluate_onnx.py --limit 16 || echo "[run] Evaluation failed, continuing..."
+python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 32 || echo "[run] Evaluation failed, continuing..."
 
 # Verification
 echo "[run] Running verification..."

@@ -37,7 +37,7 @@ A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image clas
 
 ## Quick start (Python 3.12 only)
 
-### Quick Start (One Command)
+### Quick Start (Smoke Test)
 
 ```bash
 # Create and activate venv
@@ -45,11 +45,14 @@ bash scripts/setup_venv.sh
 source .venv/bin/activate      # Linux/macOS
 # or: .\.venv\Scripts\Activate.ps1  # Windows
 
-# Start Jupyter Notebook with the lesson
-python main.py
+# Run Smoke Test (1 epoch, fast pipeline verification)
+python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
+python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
+python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 32
+python verify.py
 ```
 
-### Pretty Demo (Nice Graphs)
+### Optional: Pretty Demo (Nice Graphs)
 
 For demonstration purposes with clear training curves and stable confusion matrix:
 
@@ -63,15 +66,25 @@ bash scripts/demo_pretty.sh
 
 This runs:
 
-1. Training (5 epochs, batch-size 64) → ONNX export
-2. Evaluation (200 samples) → confusion matrix
-3. Automatically opens the generated PNG images
+1. Training (5 epochs, batch-size 16) → ONNX export
+2. Benchmarking (50 warmup, 200 runs) → latency analysis
+3. Evaluation (200 samples) → confusion matrix
+4. Automatically opens the generated PNG images
 
-**Tip:** For faster demo, edit the script to use `--epochs 3` but keep `--limit 200` for stable confusion matrix.
+**Note:** Smoke Test shows 1 point (with markers), Pretty Demo shows 5-point curves. Both give **PASS** in `verify.py`.
 
-This opens `labs/00_run_everything.ipynb` directly in Jupyter Notebook - the complete interactive lesson!
+### Alternative: Jupyter Notebook
+
+```bash
+# Start Jupyter Notebook with the lesson
+python main.py
+```
+
+This opens `notebooks/00_run_everything.ipynb` directly in Jupyter Notebook - the complete interactive lesson!
 
 ### Alternative: Direct CLI
+
+**Note:** Om `data/train` saknas skapas ett litet syntetiskt set automatiskt vid körning.
 
 ```bash
 # Create and activate venv
@@ -141,6 +154,32 @@ index.html  run_lesson.sh  verify.py  scripts/  notebooks/  src/
 requirements.txt  progress/  LICENSE  DATA_LICENSES.md  .env.example
 piedge_edukit/  models/  reports/  pi_setup/  data/
 ```
+
+## Troubleshooting
+
+### Kernel Selection
+
+**Important:** In Jupyter Notebook, select **"Python 3.12 (.venv piedge)"** as your kernel. This ensures you're using the correct virtual environment.
+
+### Problems Panel
+
+Notebooks are partially exempted from Ruff/Pyright linting to reduce noise. Focus on fixing warnings in `src/` and `scripts/` directories.
+
+### Windows Tips
+
+- Open generated images: `cmd.exe /c start "" "reports\\file.png"`
+- Use Git Bash for all bash commands
+- PowerShell works for Python commands
+
+### Quantization Issues
+
+INT8 quantization may fail on some systems. FP32 fallback is acceptable and will be used automatically.
+
+### Common Issues
+
+- **"Module not found"**: Ensure you're in the repo root and virtual environment is activated
+- **"Permission denied"**: Run `bash scripts/setup_venv.sh` to recreate the virtual environment
+- **Slow performance**: Use `--fakedata` flag for quick testing
 
 ## License
 

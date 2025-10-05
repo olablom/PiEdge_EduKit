@@ -38,13 +38,19 @@ source .venv/bin/activate
         Alternative with uv: <code>uv venv && source .venv/bin/activate && uv pip install -r requirements.txt</code>
     </details>
 
-    <h2>Step 2 — Run the lesson (self-contained)</h2>
+    <h2>Step 2 — Run Smoke Test (default)</h2>
+    <p><strong>Note:</strong> Om <code>data/train</code> saknas skapas ett litet syntetiskt set automatiskt vid körning.</p>
     <pre>
-bash run_lesson.sh
+python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
+python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
+python -m piedge_edukit.quantization --data-path data/train --model-path ./models/model.onnx --calib-size 32 || echo "INT8 fail är OK"
+python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 32
+python verify.py
 </pre>
-    <p>This runs: training (FakeData), export, benchmark, quantization, evaluation and finally auto-verification.</p>
+    <p>This runs: training (1 epoch, fast), export, benchmark (3 runs), quantization, evaluation (32 samples) and
+        finally auto-verification.</p>
 
-    <h2>Pretty Demo (Nice Graphs)</h2>
+    <h2>Optional: Pretty Demo (Nice Graphs)</h2>
     <p>For demonstration with clear training curves and stable confusion matrix:</p>
     <pre>
 # Windows (Git Bash eller PowerShell)
@@ -53,8 +59,10 @@ scripts\demo_pretty.bat
 # macOS / Linux  
 bash scripts/demo_pretty.sh
 </pre>
-    <p>This runs: training (5 epochs, batch-size 64) → ONNX export → evaluation (200 samples) → automatically opens PNG
-        images.</p>
+    <p>This runs: training (5 epochs, batch-size 16) → benchmark (200 runs) → evaluation (200 samples) → automatically
+        opens PNG images.</p>
+    <p><strong>Note:</strong> Smoke Test shows 1 point (with markers), Pretty Demo shows 5-point curves. Both give
+        <strong>PASS</strong> in <code>verify.py</code>.</p>
 
     <h2>Step 3 — Look at the results</h2>
     <ul>
