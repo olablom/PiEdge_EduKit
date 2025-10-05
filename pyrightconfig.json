@@ -1,25 +1,24 @@
 {
-  "include": [
-    "src",
-    "scripts",
-    "notebooks"
+  "typeCheckingMode": "basic",
+  "ignore": [
+    "notebooks/*.ipynb"
   ],
   "exclude": [
-    ".venv",
-    "models",
-    "reports", 
-    "progress",
-    "notebooks/models",
-    "notebooks/reports",
-    "notebooks/data"
+    "notebooks/**/data",
+    "notebooks/**/models",
+    "notebooks/**/reports"
+  ],
+  "reportUnusedImport": "warning",
+  "reportUnusedVariable": "warning",
+  "reportAttributeAccessIssue": "warning",
+  "include": [
+    "src",
+    "scripts"
   ],
   "pythonVersion": "3.12",
-  "typeCheckingMode": "basic",
   "useLibraryCodeForTypes": true,
   "extraPaths": [
     "src"
   ],
-  "reportMissingImports": "warning",
-  "reportMissingTypeStubs": "none",
-  "reportUndefinedVariable": "warning"
+  "reportMissingTypeStubs": "none"
 }
