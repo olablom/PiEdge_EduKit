@@ -1,0 +1,20 @@
+name: smoke
+on:
+    push: { branches: [main] }
+    pull_request: {}
+jobs:
+    smoke:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v5
+              with: { python-version: "3.12" }
+            - run: pip install -e . -r requirements.txt
+            - run: python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 64 --output-dir ./models
+            - run: python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 1 --providers CPUExecutionProvider
+            - run: python scripts/evaluate_onnx.py --model ./models/model.onnx --fakedata --limit 16
+            - run: python verify.py
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: receipt
+                  path: progress/receipt.json

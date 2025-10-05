@@ -6,6 +6,22 @@
 
 A **self-contained 30-minute micro-lesson** for edge ML: train a tiny image classifier → export to ONNX → benchmark latency → drive a GPIO LED with hysteresis.
 
+## 🚀 One-click Start
+
+**Windows:** Double-click `run_lesson.bat` _or_ run `python main.py`  
+**macOS/Linux:** `bash run_lesson.sh` _or_ `python3 main.py`
+
+This will:
+
+- Create `.venv` if it doesn't exist
+- Install all requirements
+- Register Jupyter kernel "piedge"
+- Launch Jupyter with the main notebook
+
+> **Note:** If `data/train` is missing, a small synthetic dataset is created automatically during execution.
+
+## Manual Setup (if needed)
+
 > **Prerequisites (hard requirement)**
 >
 > - **Python 3.12.x** (inte 3.11, inte 3.13)
@@ -84,7 +100,7 @@ This opens `notebooks/00_run_everything.ipynb` directly in Jupyter Notebook - th
 
 ### Alternative: Direct CLI
 
-**Note:** Om `data/train` saknas skapas ett litet syntetiskt set automatiskt vid körning.
+**Note:** If `data/train` is missing, a small synthetic dataset is created automatically during execution.
 
 ```bash
 # Create and activate venv

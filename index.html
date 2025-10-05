@@ -10,6 +10,25 @@
         End with auto-verification that generates JSON receipt.</p>
     <p><a href="index.sv.html">Svenska versionen</a></p>
 
+    <h2>🚀 One-click Start</h2>
+    <p><strong>Windows:</strong> Double-click <code>run_lesson.bat</code> <em>or</em> run <code>python main.py</code>
+    </p>
+    <p><strong>macOS/Linux:</strong> <code>bash run_lesson.sh</code> <em>or</em> <code>python3 main.py</code></p>
+
+    <p>This will:
+    <ul>
+        <li>Create <code>.venv</code> if it doesn't exist</li>
+        <li>Install all requirements</li>
+        <li>Register Jupyter kernel "piedge"</li>
+        <li>Launch Jupyter with the main notebook</li>
+    </ul>
+    </p>
+
+    <p><strong>Note:</strong> If <code>data/train</code> is missing, a small synthetic dataset is created automatically
+        during execution.</p>
+
+    <h2>Manual Setup (if needed)</h2>
+
     <h2>Time Budget</h2>
     <p>Approx. <strong>~30 minutes</strong> of active time, with fast defaults (1 epoch, small batches).</p>
 
@@ -39,7 +58,8 @@ source .venv/bin/activate
     </details>
 
     <h2>Step 2 — Run Smoke Test (default)</h2>
-    <p><strong>Note:</strong> Om <code>data/train</code> saknas skapas ett litet syntetiskt set automatiskt vid körning.</p>
+    <p><strong>Note:</strong> If <code>data/train</code> is missing, a small synthetic dataset is created automatically
+        during execution.</p>
     <pre>
 python -m piedge_edukit.train --fakedata --no-pretrained --epochs 1 --batch-size 256 --output-dir ./models
 python -m piedge_edukit.benchmark --fakedata --model-path ./models/model.onnx --warmup 1 --runs 3 --providers CPUExecutionProvider
@@ -62,7 +82,8 @@ bash scripts/demo_pretty.sh
     <p>This runs: training (5 epochs, batch-size 16) → benchmark (200 runs) → evaluation (200 samples) → automatically
         opens PNG images.</p>
     <p><strong>Note:</strong> Smoke Test shows 1 point (with markers), Pretty Demo shows 5-point curves. Both give
-        <strong>PASS</strong> in <code>verify.py</code>.</p>
+        <strong>PASS</strong> in <code>verify.py</code>.
+    </p>
 
     <h2>Step 3 — Look at the results</h2>
     <ul>

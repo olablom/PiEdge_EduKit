@@ -22,23 +22,31 @@ from .preprocess import PreprocessConfig, validate_preprocessing_consistency
 from .labels import LabelManager, validate_labels_integrity
 
 
-def _save_training_metrics(out_dir: Path, train_losses: list, val_losses: list, 
-                          train_accs: list, val_accs: list):
+def ensure_dir(p: str) -> Path:
+    """Ensure directory exists, create if needed."""
+    d = Path(p)
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def _save_training_metrics(out_dir: Path, train_losses: list, val_losses: list, train_accs: list, val_accs: list):
     """Save training metrics as CSV, JSON and PNG plot."""
-    out_dir.mkdir(parents=True, exist_ok=True)
-    
+    ensure_dir(str(out_dir))
+
     # Prepare data
     epochs = list(range(1, len(train_losses) + 1))
     history = []
     for i, epoch in enumerate(epochs):
-        history.append({
-            "epoch": epoch,
-            "train_loss": train_losses[i],
-            "val_loss": val_losses[i], 
-            "train_acc": train_accs[i],
-            "val_acc": val_accs[i]
-        })
-    
+        history.append(
+            {
+                "epoch": epoch,
+                "train_loss": train_losses[i],
+                "val_loss": val_losses[i],
+                "train_acc": train_accs[i],
+                "val_acc": val_accs[i],
+            }
+        )
+
     # Save CSV
     csv_path = out_dir / "training_log.csv"
     with csv_path.open("w", newline="") as f:
@@ -46,45 +54,45 @@ def _save_training_metrics(out_dir: Path, train_losses: list, val_losses: list,
         w.writeheader()
         for row in history:
             w.writerow(row)
-    
+
     # Save JSON
     (out_dir / "training_log.json").write_text(json.dumps(history, indent=2))
-    
+
     # Create PNG plot
     fig, axs = plt.subplots(1, 2, figsize=(14, 5), dpi=150)
-    
+
     # ---- Loss ----
-    axs[0].plot(epochs, train_losses, marker='o', label='train loss')
-    axs[0].plot(epochs, val_losses, marker='o', label='val loss')
-    
+    axs[0].plot(epochs, train_losses, marker="o", label="train loss")
+    axs[0].plot(epochs, val_losses, marker="o", label="val loss")
+
     yvals = list(train_losses) + list(val_losses)
     ymin, ymax = min(yvals), max(yvals)
     pad = max(1e-3, 0.02 * (ymax - ymin or 1.0))
     axs[0].set_ylim(ymin - pad, ymax + pad)
-    
-    axs[0].set_xlabel('Epoch')
-    axs[0].set_ylabel('Loss')
-    axs[0].set_title('Training & Validation Loss')
+
+    axs[0].set_xlabel("Epoch")
+    axs[0].set_ylabel("Loss")
+    axs[0].set_title("Training & Validation Loss")
     axs[0].legend()
-    
+
     # ---- Accuracy ----
-    axs[1].plot(epochs, train_accs, marker='o', label='train acc')
-    axs[1].plot(epochs, val_accs, marker='o', label='val acc')
-    
+    axs[1].plot(epochs, train_accs, marker="o", label="train acc")
+    axs[1].plot(epochs, val_accs, marker="o", label="val acc")
+
     avals = list(train_accs) + list(val_accs)
     amin, amax = min(avals), max(avals)
     apad = max(0.2, 0.02 * (amax - amin or 1.0))
     axs[1].set_ylim(amin - apad, amax + apad)
-    
-    axs[1].set_xlabel('Epoch')
-    axs[1].set_ylabel('Accuracy (%)')
-    axs[1].set_title('Training & Validation Accuracy')
+
+    axs[1].set_xlabel("Epoch")
+    axs[1].set_ylabel("Accuracy (%)")
+    axs[1].set_title("Training & Validation Accuracy")
     axs[1].legend()
-    
+
     fig.tight_layout()
-    fig.savefig(out_dir / "training_curves.png", dpi=160, bbox_inches='tight')
+    fig.savefig(out_dir / "training_curves.png", dpi=160, bbox_inches="tight")
     plt.close(fig)
-    
+
     print(f"[OK] Training metrics saved to {out_dir}")
     print(f"  - CSV: {csv_path}")
     print(f"  - JSON: {out_dir / 'training_log.json'}")
@@ -153,9 +161,7 @@ class ImageDataset(Dataset):
         if not self.image_paths:
             raise ValueError(f"No images found in {data_dir}")
 
-        print(
-            f"[OK] Found {len(self.image_paths)} images in {len(set(self.labels))} classes"
-        )
+        print(f"[OK] Found {len(self.image_paths)} images in {len(set(self.labels))} classes")
 
     def __len__(self):
         return len(self.image_paths)
@@ -243,18 +249,12 @@ class Trainer:
 
         if self.use_fakedata:
             # Use FakeData for testing
-            train_dataset = FakeImageDataset(
-                size=self.fake_train_size, num_classes=2, transform=train_transform
-            )
-            val_dataset = FakeImageDataset(
-                size=self.fake_val_size, num_classes=2, transform=val_transform
-            )
+            train_dataset = FakeImageDataset(size=self.fake_train_size, num_classes=2, transform=train_transform)
+            val_dataset = FakeImageDataset(size=self.fake_val_size, num_classes=2, transform=val_transform)
             unique_classes = train_dataset.classes
         else:
             # Use real image data
-            train_dataset = ImageDataset(
-                self.data_dir, train_transform, is_training=True
-            )
+            train_dataset = ImageDataset(self.data_dir, train_transform, is_training=True)
             val_dataset = ImageDataset(self.data_dir, val_transform, is_training=False)
             unique_classes = sorted(list(set(train_dataset.labels)))
 
@@ -294,9 +294,9 @@ class Trainer:
             images = images.to(self.device)
 
             # Convert string labels to indices
-            label_indices = torch.tensor(
-                [self.label_manager.get_class_index(label) for label in labels]
-            ).to(self.device)
+            label_indices = torch.tensor([self.label_manager.get_class_index(label) for label in labels]).to(
+                self.device
+            )
 
             optimizer.zero_grad()
             outputs = model(images)
@@ -314,9 +314,7 @@ class Trainer:
 
         return avg_loss, accuracy
 
-    def validate_epoch(
-        self, model: nn.Module, val_loader: DataLoader, criterion: nn.Module
-    ) -> Tuple[float, float]:
+    def validate_epoch(self, model: nn.Module, val_loader: DataLoader, criterion: nn.Module) -> Tuple[float, float]:
         """Validate model for one epoch."""
         model.eval()
         total_loss = 0.0
@@ -328,9 +326,9 @@ class Trainer:
                 images = images.to(self.device)
 
                 # Convert string labels to indices
-                label_indices = torch.tensor(
-                    [self.label_manager.get_class_index(label) for label in labels]
-                ).to(self.device)
+                label_indices = torch.tensor([self.label_manager.get_class_index(label) for label in labels]).to(
+                    self.device
+                )
 
                 outputs = model(images)
                 loss = criterion(outputs, label_indices)
@@ -364,9 +362,7 @@ class Trainer:
 
         # Setup training
         criterion = nn.CrossEntropyLoss()
-        optimizer = optim.Adam(
-            model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay
-        )
+        optimizer = optim.Adam(model.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.1)
 
         print(f"Training model with {num_classes} classes...")
@@ -387,9 +383,7 @@ class Trainer:
             print(f"\nEpoch {epoch + 1}/{self.num_epochs}")
 
             # Train
-            train_loss, train_acc = self.train_epoch(
-                model, train_loader, optimizer, criterion
-            )
+            train_loss, train_acc = self.train_epoch(model, train_loader, optimizer, criterion)
 
             # Validate
             val_loss, val_acc = self.validate_epoch(model, val_loader, criterion)
@@ -409,9 +403,7 @@ class Trainer:
             with open(csv_path, "a", newline="") as f:
                 writer = csv.writer(f)
                 if not csv_header_written:
-                    writer.writerow(
-                        ["epoch", "train_loss", "val_loss", "train_acc", "val_acc"]
-                    )
+                    writer.writerow(["epoch", "train_loss", "val_loss", "train_acc", "val_acc"])
                     csv_header_written = True
                 writer.writerow([epoch + 1, train_loss, val_loss, train_acc, val_acc])
 
@@ -481,17 +473,13 @@ class Trainer:
 
 def main():
     parser = argparse.ArgumentParser(description="Train MobileNetV2 classifier")
-    parser.add_argument(
-        "--data-path", help="Path to training data (not needed with --fakedata)"
-    )
+    parser.add_argument("--data-path", help="Path to training data (not needed with --fakedata)")
     parser.add_argument("--output-dir", default="models", help="Output directory")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
-    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs")
-    parser.add_argument("--batch-size", type=int, default=16, help="Batch size")
+    parser.add_argument("--epochs", type=int, default=1, help="Number of epochs (1=Smoke Test, 5=Pretty Demo)")
+    parser.add_argument("--batch-size", type=int, default=256, help="Batch size (256=Smoke Test, 16=Pretty Demo)")
     parser.add_argument("--lr", type=float, default=0.001, help="Learning rate")
-    parser.add_argument(
-        "--fakedata", action="store_true", help="Use FakeData instead of real images"
-    )
+    parser.add_argument("--fakedata", action="store_true", help="Use FakeData instead of real images")
     parser.add_argument(
         "--no-pretrained",
         action="store_true",
@@ -516,9 +504,7 @@ def main():
         output_dir=args.output_dir,
         seed=args.seed,
         use_fakedata=args.fakedata,
-        use_pretrained=(
-            not args.fakedata and not args.no_pretrained and not args.ci_fast
-        ),
+        use_pretrained=(not args.fakedata and not args.no_pretrained and not args.ci_fast),
         ci_fast=args.ci_fast,
         num_workers=args.num_workers,
     )

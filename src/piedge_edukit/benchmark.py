@@ -21,6 +21,13 @@ from .preprocess import PreprocessConfig, validate_preprocessing_consistency
 from .labels import LabelManager, validate_labels_integrity
 
 
+def ensure_dir(p: str) -> Path:
+    """Ensure directory exists, create if needed."""
+    d = Path(p)
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 class LatencyBenchmark:
     """Latency benchmarking with deterministic methodology."""
 
@@ -33,13 +40,12 @@ class LatencyBenchmark:
     ):
         self.model_path = Path(model_path)
         self.data_dir = Path(data_dir) if data_dir else None
-        self.output_dir = Path(output_dir)
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.output_dir = ensure_dir(output_dir)
         self.use_fakedata = use_fakedata
 
-        # Benchmark parameters
-        self.warmup_runs = 50
-        self.benchmark_runs = 200
+        # Benchmark parameters (Smoke Test defaults)
+        self.warmup_runs = 1
+        self.benchmark_runs = 3
         self.batch_size = 1  # Single image inference
 
         # Initialize components
@@ -114,14 +120,10 @@ class LatencyBenchmark:
 
             # Try to use specified providers, fallback to CPU
             try:
-                session = ort.InferenceSession(
-                    str(self.model_path), providers=providers
-                )
+                session = ort.InferenceSession(str(self.model_path), providers=providers)
             except Exception:
                 print(f"[WARNING] Failed to use {providers}, falling back to CPU")
-                session = ort.InferenceSession(
-                    str(self.model_path), providers=["CPUExecutionProvider"]
-                )
+                session = ort.InferenceSession(str(self.model_path), providers=["CPUExecutionProvider"])
 
             print(f"[OK] Model loaded successfully")
             print(f"  Providers: {session.get_providers()}")
@@ -232,9 +234,7 @@ class LatencyBenchmark:
 
         print("[OK] Warmup completed")
 
-    def _benchmark_latency(
-        self, session: ort.InferenceSession, test_data: List[np.ndarray]
-    ) -> List[float]:
+    def _benchmark_latency(self, session: ort.InferenceSession, test_data: List[np.ndarray]) -> List[float]:
         """Benchmark inference latency."""
         print(f"Running {self.benchmark_runs} benchmark iterations...")
 
@@ -275,9 +275,7 @@ class LatencyBenchmark:
         """Save benchmark results."""
 
         # Save detailed results
-        results_df = pd.DataFrame(
-            {"run": range(len(latencies)), "latency_ms": latencies}
-        )
+        results_df = pd.DataFrame({"run": range(len(latencies)), "latency_ms": latencies})
 
         csv_path = self.output_dir / "latency.csv"
         results_df.to_csv(csv_path, index=False)
@@ -288,9 +286,7 @@ class LatencyBenchmark:
             f.write("PiEdge EduKit - Latency Benchmark Results\n")
             f.write("=" * 50 + "\n\n")
 
-            f.write(
-                f"Version: {self.system_info.get('piedge_edukit_version', 'Unknown')}\n"
-            )
+            f.write(f"Version: {self.system_info.get('piedge_edukit_version', 'Unknown')}\n")
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
             f.write("Version Information:\n")
@@ -481,15 +477,11 @@ def main():
 
     parser = argparse.ArgumentParser(description="Benchmark ONNX model latency")
     parser.add_argument("--model-path", required=True, help="Path to ONNX model")
-    parser.add_argument(
-        "--data-path", help="Path to test data (not needed with --fakedata)"
-    )
+    parser.add_argument("--data-path", help="Path to test data (not needed with --fakedata)")
     parser.add_argument("--output-dir", default="reports", help="Output directory")
-    parser.add_argument("--warmup", type=int, default=50, help="Warmup runs")
-    parser.add_argument("--runs", type=int, default=200, help="Benchmark runs")
-    parser.add_argument(
-        "--fakedata", action="store_true", help="Use FakeData instead of real images"
-    )
+    parser.add_argument("--warmup", type=int, default=1, help="Warmup runs (1=Smoke Test, 50=Pretty Demo)")
+    parser.add_argument("--runs", type=int, default=3, help="Benchmark runs (3=Smoke Test, 200=Pretty Demo)")
+    parser.add_argument("--fakedata", action="store_true", help="Use FakeData instead of real images")
     parser.add_argument(
         "--providers",
         nargs="+",

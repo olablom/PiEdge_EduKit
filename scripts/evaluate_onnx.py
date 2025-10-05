@@ -20,6 +20,13 @@ import onnxruntime as ort
 import matplotlib.pyplot as plt
 
 
+def ensure_dir(p: str) -> Path:
+    """Ensure directory exists, create if needed."""
+    d = Path(p)
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
 def load_labels(labels_path: Path):
     """Load labels from JSON file."""
     with open(labels_path, "r", encoding="utf-8") as f:
@@ -95,11 +102,11 @@ def plot_confusion(cm, class_names, outpath: Path):
     """Plot confusion matrix."""
     fig = plt.figure(figsize=(6, 5))
     plt.imshow(cm, interpolation="nearest")
-    
+
     # Calculate accuracy and add to title
     acc = np.trace(cm) / np.sum(cm) if np.sum(cm) else 0.0
-    plt.title(f'Confusion Matrix — Acc: {acc*100:.1f}%')
-    
+    plt.title(f"Confusion Matrix — Acc: {acc * 100:.1f}%")
+
     plt.xticks(range(len(class_names)), class_names, rotation=45, ha="right")
     plt.yticks(range(len(class_names)), class_names)
     plt.xlabel("Predicted")
@@ -116,17 +123,12 @@ def main():
     ap = argparse.ArgumentParser(description="Evaluate ONNX model")
     ap.add_argument("--model", required=True, help="Path to ONNX model")
     ap.add_argument("--data", default="data", help="Root dataset folder")
-    ap.add_argument(
-        "--fakedata", action="store_true", help="Use synthetic data instead of files"
-    )
+    ap.add_argument("--fakedata", action="store_true", help="Use synthetic data instead of files")
     ap.add_argument("--outdir", default="reports", help="Output dir for reports")
-    ap.add_argument(
-        "--limit", type=int, default=None, help="Limit number of samples for fast CI"
-    )
+    ap.add_argument("--limit", type=int, default=32, help="Limit samples (32=Smoke Test, 200=Pretty Demo)")
     args = ap.parse_args()
 
-    outdir = Path(args.outdir)
-    outdir.mkdir(parents=True, exist_ok=True)
+    outdir = ensure_dir(args.outdir)
     labels = load_labels(Path("models/labels.json"))
     size, mean, std = load_preprocess(Path("models/preprocess_config.json"))
     class_names = [labels[i] for i in sorted(labels.keys())]

@@ -1,195 +1,108 @@
 #!/usr/bin/env python3
-import os, sys, subprocess, shutil
+"""
+PiEdge EduKit - One-click bootstrap script
+Creates .venv, installs requirements, registers kernel, and launches Jupyter.
+"""
 
-REQUIRED_MAJOR = 3
-REQUIRED_MINOR = 12
-KERNEL_NAME = "piedge-edukit-312"
-KERNEL_TITLE = "Python 3.12 (piedge)"
-PRIMARY_NB = os.path.join("notebooks", "00_run_everything.ipynb")
-FALLBACK_NB = os.path.join("notebooks", "01_training_and_export.ipynb")
+import os
+import subprocess
+import sys
+import shutil
+import platform
 
-
-def fail(msg: str, code: int = 2):
-    print(f"\nERROR: {msg}\n", file=sys.stderr)
-    sys.exit(code)
-
-
-def ensure_py312():
-    if not (
-        sys.version_info.major == REQUIRED_MAJOR
-        and sys.version_info.minor == REQUIRED_MINOR
-    ):
-        fail(
-            f"This lesson requires Python {REQUIRED_MAJOR}.{REQUIRED_MINOR}. "
-            f"Found {sys.version.split()[0]}. See README for install instructions."
-        )
+HERE = os.path.dirname(os.path.abspath(__file__))
+VENV = os.path.join(HERE, ".venv")
+IS_WIN = platform.system() == "Windows"
 
 
-def warn_if_not_repo_venv():
-    # Nice warning only; proceed anyway so beginners aren't blocked.
-    repo_venv = os.path.abspath(os.path.join(os.getcwd(), ".venv"))
-    venv_env = os.environ.get("VIRTUAL_ENV", "")
+def run(cmd, env=None):
+    """Run command and print it."""
+    print(">", " ".join(cmd))
+    subprocess.check_call(cmd, env=env or os.environ)
 
-    def samepath(a: str, b: str) -> bool:
-        try:
-            return os.path.samefile(a, b)
-        except Exception:
-            return os.path.abspath(a) == os.path.abspath(b)
 
-    looks_ok = False
-    if venv_env:
-        looks_ok = samepath(venv_env, repo_venv)
+def python_exe():
+    """Get Python executable path in venv."""
+    return os.path.join(VENV, "Scripts" if IS_WIN else "bin", "python")
+
+
+def ensure_venv():
+    """Create .venv if it doesn't exist."""
+    if not os.path.exists(VENV):
+        print("[setup] Creating .venv ...")
+        run([sys.executable, "-m", "venv", VENV])
     else:
-        # Fallback: sys.prefix should live under .venv
-        looks_ok = repo_venv in os.path.abspath(sys.prefix)
-
-    if not looks_ok:
-        print("WARNING: You don't seem to be using this repo's .venv.")
-        print(
-            "         Activate first for a clean run:\n"
-            "           Git Bash:   source .venv/bin/activate\n"
-            "           PowerShell: .\\.venv\\Scripts\\Activate.ps1\n"
-        )
+        print("[setup] .venv exists")
 
 
-def ensure_editable_installed():
-    """Ensure the project package is installed in editable mode for the current interpreter."""
+def pip_install():
+    """Install requirements and package."""
+    print("[setup] Installing requirements ...")
+    run([python_exe(), "-m", "pip", "install", "--upgrade", "pip"])
+    run([python_exe(), "-m", "pip", "install", "-r", os.path.join(HERE, "requirements.txt")])
+
+    # Install our package (editable preferred)
     try:
-        import piedge_edukit  # noqa: F401
-    except Exception:
-        print("Installing package in editable mode...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "-e", "."])
-
-
-def pip_install_if_missing(module: str, pip_name: str | None = None):
-    pip_name = pip_name or module
-    try:
-        __import__(module)
-    except Exception:
-        print(f"Installing {pip_name} …")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", pip_name])
+        run([python_exe(), "-m", "pip", "install", "-e", HERE])
+        print("[setup] Package installed successfully")
+    except subprocess.CalledProcessError:
+        print("[setup] Editable install failed, continuing with source via PYTHONPATH")
 
 
 def ensure_kernel():
-    # make sure jupyter + notebook + ipykernel exist
-    pip_install_if_missing("jupyter")
-    pip_install_if_missing("notebook", "notebook>=7")
-    pip_install_if_missing("ipykernel")
-
-    # list kernels
-    try:
-        out = subprocess.check_output(
-            [sys.executable, "-m", "jupyter", "kernelspec", "list"],
-            text=True,
-            errors="ignore",
-        )
-        if KERNEL_NAME not in out:
-            print(f"Installing Jupyter kernel '{KERNEL_NAME}' …")
-            subprocess.check_call(
-                [
-                    sys.executable,
-                    "-m",
-                    "ipykernel",
-                    "install",
-                    "--user",
-                    "--name",
-                    KERNEL_NAME,
-                    "--display-name",
-                    KERNEL_TITLE,
-                ]
-            )
-    except FileNotFoundError:
-        fail("Could not find 'jupyter' on PATH. Activate .venv or install Jupyter.")
+    """Register Jupyter kernel 'piedge'."""
+    print("[setup] Register Jupyter kernel 'piedge' ...")
+    run(
+        [
+            python_exe(),
+            "-m",
+            "ipykernel",
+            "install",
+            "--user",
+            "--name",
+            "piedge",
+            "--display-name",
+            "Python 3.12 (.venv piedge)",
+        ]
+    )
 
 
-def resolve_target_notebook() -> str:
-    if os.path.exists(PRIMARY_NB):
-        return PRIMARY_NB
-    if os.path.exists(FALLBACK_NB):
-        return FALLBACK_NB
-    # fallback to labs root
-    if os.path.isdir("labs"):
-        # open into labs folder
-        return "labs/"
-    fail("Could not find 'labs' folder. Are you running from the repo root?")
+def launch_notebook():
+    """Launch Jupyter with the main notebook."""
+    nb = os.path.join(HERE, "notebooks", "00_run_everything.ipynb")
+    if not os.path.exists(nb):
+        raise SystemExit(f"Notebook not found: {nb}")
 
+    print("[run] Launching Jupyter with the 'piedge' kernel ...")
+    print("[run] The notebook will open automatically.")
+    print("[run] Select 'Python 3.12 (.venv piedge)' as your kernel.")
 
-def launch_notebook(target: str):
-    # Use Jupyter Server flags (Notebook 7+) and pass the file path directly
-    web_target = target.replace(os.sep, "/")
-    is_dir = web_target.endswith("/")
-
-    cmd = [
-        sys.executable,
-        "-m",
-        "jupyter",
-        "notebook",
-        "--ServerApp.open_browser=True",
-        "--ServerApp.root_dir=.",
-    ]
-
-    if is_dir:
-        # Folder view
-        cmd.append(f"--ServerApp.default_url=/tree/{web_target}")
-    else:
-        # Open the exact file and set default_url for consistency
-        cmd.append(f"--ServerApp.default_url=/notebooks/{os.path.basename(web_target)}")
-        cmd.append(target)
-
-    print("\nStarting Jupyter Notebook …")
-    print(" ".join(cmd))
-
-    # Show navigation instructions
-    print("\n" + "=" * 60)
-    print("🎓 PiEdge EduKit - Interactive Learning Path")
-    print("=" * 60)
-    print("📚 Lesson Sequence:")
-    print("  00_run_everything.ipynb    - Quick demo & setup")
-    print("  01_training_and_export.ipynb - CNN implementation & training")
-    print("  02_latency_benchmark.ipynb   - Performance measurement")
-    print("  03_quantization.ipynb        - Model compression")
-    print("  04_evaluate_and_verify.ipynb - Evaluation & reflection")
-    print("\n💡 Start with 00_run_everything.ipynb for a quick overview,")
-    print("   then work through 01-04 for hands-on learning!")
-    print("=" * 60)
-
-    subprocess.call(cmd)
+    # Start Jupyter Notebook
+    run([python_exe(), "-m", "jupyter", "notebook", nb, "--NotebookApp.default_kernel_name=piedge"])
 
 
 def main():
-    ensure_py312()
-    warn_if_not_repo_venv()
-    ensure_editable_installed()
-    ensure_kernel()
-    target = resolve_target_notebook()
+    """Main bootstrap sequence."""
+    print("PiEdge EduKit - One-click setup")
+    print("=" * 50)
 
-    # Auto-clear outputs and trust the primary lesson notebook before launch
-    from pathlib import Path
-
-    nb_path = (
-        Path(target).resolve()
-        if not target.endswith("/")
-        else Path(PRIMARY_NB).resolve()
-    )
-    if nb_path.exists():
-        # 1) Clear saved outputs
-        subprocess.run(
-            [
-                sys.executable,
-                "-m",
-                "jupyter",
-                "nbconvert",
-                "--ClearOutputPreprocessor.enabled=True",
-                "--inplace",
-                str(nb_path),
-            ],
-            check=False,
-        )
-        # 2) Trust notebook
-        subprocess.run(
-            [sys.executable, "-m", "jupyter", "trust", str(nb_path)], check=False
-        )
-    launch_notebook(target)
+    try:
+        ensure_venv()
+        pip_install()
+        ensure_kernel()
+        launch_notebook()
+    except KeyboardInterrupt:
+        print("\n[setup] Interrupted by user")
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"\n[setup] Error: {e}")
+        print("[setup] Try running manually:")
+        print("  python -m venv .venv")
+        print("  .venv/Scripts/activate  # Windows")
+        print("  .venv/bin/activate      # macOS/Linux")
+        print("  pip install -r requirements.txt")
+        print("  pip install -e .")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
