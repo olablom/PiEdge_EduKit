@@ -49,6 +49,26 @@ source .venv/bin/activate      # Linux/macOS
 python main.py
 ```
 
+### Pretty Demo (Nice Graphs)
+
+For demonstration purposes with clear training curves and stable confusion matrix:
+
+```bash
+# Windows (Git Bash eller PowerShell)
+scripts\demo_pretty.bat
+
+# macOS / Linux
+bash scripts/demo_pretty.sh
+```
+
+This runs:
+
+1. Training (5 epochs, batch-size 64) → ONNX export
+2. Evaluation (200 samples) → confusion matrix
+3. Automatically opens the generated PNG images
+
+**Tip:** For faster demo, edit the script to use `--epochs 3` but keep `--limit 200` for stable confusion matrix.
+
 This opens `labs/00_run_everything.ipynb` directly in Jupyter Notebook - the complete interactive lesson!
 
 ### Alternative: Direct CLI

@@ -9,16 +9,17 @@ build/
 dist/
 
 # Runtime artifacts
-models/*
-reports/*
-progress/*
+models/
+reports/
+progress/
+notebooks/models/
+notebooks/reports/
+notebooks/data/
+.preview_html/
 .notebooks_cache/
-!models/.gitkeep
-!reports/.gitkeep
-!progress/.gitkeep
 
 # Editors / OS
-.vscode/
+.vscode/settings.json
 .idea/
 .DS_Store
 Thumbs.db
@@ -28,6 +29,7 @@ Thumbs.db
 venv/
 
 # Zips / releases
+Lesson_PiEdge_*.zip
 VG_*.zip
 .trash_cleanup_*/
 

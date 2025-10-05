@@ -6,7 +6,8 @@
 <body>
     <h1>PiEdge EduKit — Självständig mikro-lektion (~30 min)</h1>
 
-    <p><b>Syfte:</b> Träna en liten bildklassificerare, exportera till ONNX, benchmarka CPU-latens och jämför FP32 vs INT8.
+    <p><b>Syfte:</b> Träna en liten bildklassificerare, exportera till ONNX, benchmarka CPU-latens och jämför FP32 vs
+        INT8.
         Avsluta med automatisk verifiering som skriver JSON-kvitto.</p>
     <p><a href="index.html">English version</a></p>
 
@@ -55,8 +56,11 @@ bash run_lesson.sh
     <h2>Vanliga fallgropar</h2>
     <ul>
         <li><b>Apple Silicon:</b> <code>onnxruntime-silicon</code> installeras automatiskt via miljömarkörer.</li>
-        <li><b>Windows PowerShell:</b> Kör <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> för att möjliggöra venv-skript.</li>
-        <li><b>Windows venv-problem:</b> Om <code>bash scripts/setup_venv.sh</code> ger permissions-fel, testa <code>py -3.12 -m pip install --user -r requirements.txt</code> och <code>py -3.12 -m pip install --user -e .</code> i stället.</li>
+        <li><b>Windows PowerShell:</b> Kör <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> för att
+            möjliggöra venv-skript.</li>
+        <li><b>Windows venv-problem:</b> Om <code>bash scripts/setup_venv.sh</code> ger permissions-fel, testa
+            <code>py -3.12 -m pip install --user -r requirements.txt</code> och
+            <code>py -3.12 -m pip install --user -e .</code> i stället.</li>
         <li><b>Python 3.12:</b> Kontrollera installationen med <code>python --version</code>.</li>
     </ul>
 

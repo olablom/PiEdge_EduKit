@@ -14,7 +14,8 @@
     <p>Approx. <strong>~30 minutes</strong> of active time, with fast defaults (1 epoch, small batches).</p>
 
     <h2>Hardware Notes</h2>
-    <p>This lesson runs on CPU by default. GPU is optional; if used, ensure compatible drivers/toolkits and ≥16 GB VRAM for large models. The verification criteria do not require a GPU.</p>
+    <p>This lesson runs on CPU by default. GPU is optional; if used, ensure compatible drivers/toolkits and ≥16 GB VRAM
+        for large models. The verification criteria do not require a GPU.</p>
 
     <h2>Prerequisites</h2>
     <ul>
@@ -43,6 +44,18 @@ bash run_lesson.sh
 </pre>
     <p>This runs: training (FakeData), export, benchmark, quantization, evaluation and finally auto-verification.</p>
 
+    <h2>Pretty Demo (Nice Graphs)</h2>
+    <p>For demonstration with clear training curves and stable confusion matrix:</p>
+    <pre>
+# Windows (Git Bash eller PowerShell)
+scripts\demo_pretty.bat
+
+# macOS / Linux  
+bash scripts/demo_pretty.sh
+</pre>
+    <p>This runs: training (5 epochs, batch-size 64) → ONNX export → evaluation (200 samples) → automatically opens PNG
+        images.</p>
+
     <h2>Step 3 — Look at the results</h2>
     <ul>
         <li><code>reports/latency_summary.txt</code></li>
@@ -62,7 +75,10 @@ bash run_lesson.sh
         </li>
         <li><b>Windows PowerShell:</b> Run <code>Set-ExecutionPolicy -Scope CurrentUser RemoteSigned</code> to enable
             venv scripts. For .bat files: run <code>run_lesson.bat</code> directly.</li>
-        <li><b>Windows venv issues:</b> If <code>bash scripts/setup_venv.sh</code> fails with permission errors, try <code>py -3.12 -m pip install --user -r requirements.txt</code> and <code>py -3.12 -m pip install --user -e .</code> instead.</li>
+        <li><b>Windows venv issues:</b> If <code>bash scripts/setup_venv.sh</code> fails with permission errors, try
+            <code>py -3.12 -m pip install --user -r requirements.txt</code> and
+            <code>py -3.12 -m pip install --user -e .</code> instead.
+        </li>
         <li><b>Python 3.12:</b> Ensure Python 3.12 is installed. Check with <code>python --version</code>.</li>
     </ul>
 

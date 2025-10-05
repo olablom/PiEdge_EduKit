@@ -1,0 +1,14 @@
+{
+  // Windows path; on macOS/Linux use ".venv/bin/python"
+  "python.defaultInterpreterPath": ".venv/Scripts/python.exe",
+  "python.terminal.activateEnvironment": true,
+
+  "python.analysis.typeCheckingMode": "basic",
+  "python.analysis.diagnosticMode": "workspace",
+  "python.analysis.autoImportCompletions": true,
+  "python.analysis.extraPaths": ["src"],
+
+  "python.languageServer": "Pylance",
+  "jupyter.notebookFileRoot": "${workspaceFolder}",
+  "jupyter.jupyterServerType": "local"
+}

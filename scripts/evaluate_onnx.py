@@ -95,7 +95,11 @@ def plot_confusion(cm, class_names, outpath: Path):
     """Plot confusion matrix."""
     fig = plt.figure(figsize=(6, 5))
     plt.imshow(cm, interpolation="nearest")
-    plt.title("Confusion Matrix")
+    
+    # Calculate accuracy and add to title
+    acc = np.trace(cm) / np.sum(cm) if np.sum(cm) else 0.0
+    plt.title(f'Confusion Matrix — Acc: {acc*100:.1f}%')
+    
     plt.xticks(range(len(class_names)), class_names, rotation=45, ha="right")
     plt.yticks(range(len(class_names)), class_names)
     plt.xlabel("Predicted")

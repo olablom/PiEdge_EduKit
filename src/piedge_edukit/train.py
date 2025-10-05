@@ -9,15 +9,86 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import datasets, transforms
 import os
 import json
+import csv
 from pathlib import Path
 from typing import Tuple, Dict, Any
 import numpy as np
 from tqdm import tqdm
 import argparse
+import matplotlib.pyplot as plt
 
 from .model import create_model, export_to_onnx, verify_onnx_model
 from .preprocess import PreprocessConfig, validate_preprocessing_consistency
 from .labels import LabelManager, validate_labels_integrity
+
+
+def _save_training_metrics(out_dir: Path, train_losses: list, val_losses: list, 
+                          train_accs: list, val_accs: list):
+    """Save training metrics as CSV, JSON and PNG plot."""
+    out_dir.mkdir(parents=True, exist_ok=True)
+    
+    # Prepare data
+    epochs = list(range(1, len(train_losses) + 1))
+    history = []
+    for i, epoch in enumerate(epochs):
+        history.append({
+            "epoch": epoch,
+            "train_loss": train_losses[i],
+            "val_loss": val_losses[i], 
+            "train_acc": train_accs[i],
+            "val_acc": val_accs[i]
+        })
+    
+    # Save CSV
+    csv_path = out_dir / "training_log.csv"
+    with csv_path.open("w", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=["epoch", "train_loss", "val_loss", "train_acc", "val_acc"])
+        w.writeheader()
+        for row in history:
+            w.writerow(row)
+    
+    # Save JSON
+    (out_dir / "training_log.json").write_text(json.dumps(history, indent=2))
+    
+    # Create PNG plot
+    fig, axs = plt.subplots(1, 2, figsize=(14, 5), dpi=150)
+    
+    # ---- Loss ----
+    axs[0].plot(epochs, train_losses, marker='o', label='train loss')
+    axs[0].plot(epochs, val_losses, marker='o', label='val loss')
+    
+    yvals = list(train_losses) + list(val_losses)
+    ymin, ymax = min(yvals), max(yvals)
+    pad = max(1e-3, 0.02 * (ymax - ymin or 1.0))
+    axs[0].set_ylim(ymin - pad, ymax + pad)
+    
+    axs[0].set_xlabel('Epoch')
+    axs[0].set_ylabel('Loss')
+    axs[0].set_title('Training & Validation Loss')
+    axs[0].legend()
+    
+    # ---- Accuracy ----
+    axs[1].plot(epochs, train_accs, marker='o', label='train acc')
+    axs[1].plot(epochs, val_accs, marker='o', label='val acc')
+    
+    avals = list(train_accs) + list(val_accs)
+    amin, amax = min(avals), max(avals)
+    apad = max(0.2, 0.02 * (amax - amin or 1.0))
+    axs[1].set_ylim(amin - apad, amax + apad)
+    
+    axs[1].set_xlabel('Epoch')
+    axs[1].set_ylabel('Accuracy (%)')
+    axs[1].set_title('Training & Validation Accuracy')
+    axs[1].legend()
+    
+    fig.tight_layout()
+    fig.savefig(out_dir / "training_curves.png", dpi=160, bbox_inches='tight')
+    plt.close(fig)
+    
+    print(f"[OK] Training metrics saved to {out_dir}")
+    print(f"  - CSV: {csv_path}")
+    print(f"  - JSON: {out_dir / 'training_log.json'}")
+    print(f"  - Plot: {out_dir / 'training_curves.png'}")
 
 
 class FakeImageDataset(Dataset):
@@ -277,6 +348,12 @@ class Trainer:
     def train(self) -> nn.Module:
         """Train MobileNetV2 model."""
 
+        # Set random seeds for reproducibility
+        torch.manual_seed(42)
+        np.random.seed(42)
+        if torch.cuda.is_available():
+            torch.cuda.manual_seed(42)
+
         print("Preparing data...")
         train_loader, val_loader, label_manager = self.prepare_data()
 
@@ -347,6 +424,9 @@ class Trainer:
                 torch.save(model.state_dict(), self.output_dir / "model_best.pth")
 
         print(f"\nTraining completed! Best validation accuracy: {best_val_acc:.2f}%")
+
+        # Save training metrics and plots
+        _save_training_metrics(Path("reports"), train_losses, val_losses, train_accs, val_accs)
 
         # Load best model
         model.load_state_dict(torch.load(self.output_dir / "model_best.pth"))

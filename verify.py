@@ -195,6 +195,22 @@ def main():
         {"name": "evaluation_reports_exist", "ok": eval_ok, "reason": eval_reason}
     )
 
+    # 5) Image files (training curves & confusion matrix)
+    training_plot_ok = (REPORTS / "training_curves.png").exists()
+    confusion_plot_ok = (REPORTS / "confusion_matrix.png").exists()
+    
+    result["checks"].append({
+        "name": "training_curve_png",
+        "ok": training_plot_ok,
+        "reason": "Training curves plot exists" if training_plot_ok else "Training curves plot missing"
+    })
+    
+    result["checks"].append({
+        "name": "confusion_matrix_png", 
+        "ok": confusion_plot_ok,
+        "reason": "Confusion matrix plot exists" if confusion_plot_ok else "Confusion matrix plot missing"
+    })
+
     # Add criteria and latency metrics
     result["criteria"] = CRITERIA
     if lat_ok and lat:
