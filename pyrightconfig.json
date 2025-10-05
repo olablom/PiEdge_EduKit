@@ -1,0 +1,25 @@
+{
+  "include": [
+    "src",
+    "scripts",
+    "notebooks"
+  ],
+  "exclude": [
+    ".venv",
+    "models",
+    "reports", 
+    "progress",
+    "notebooks/models",
+    "notebooks/reports",
+    "notebooks/data"
+  ],
+  "pythonVersion": "3.12",
+  "typeCheckingMode": "basic",
+  "useLibraryCodeForTypes": true,
+  "extraPaths": [
+    "src"
+  ],
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": "none",
+  "reportUndefinedVariable": "warning"
+}
