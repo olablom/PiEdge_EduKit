@@ -1,17 +1,48 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>PiEdge EduKit - Quick Start</title>
     <style>
-        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
-        .header { background: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
-        .code { background: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; }
-        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007acc; background: #f9f9f9; }
-        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; }
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: #f0f0f0;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .code {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+
+        .step {
+            margin: 20px 0;
+            padding: 15px;
+            border-left: 4px solid #007acc;
+            background: #f9f9f9;
+        }
+
+        .warning {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 10px;
+            border-radius: 4px;
+        }
     </style>
 </head>
+
 <body>
     <div class="header">
         <h1>🚀 PiEdge EduKit - Quick Start</h1>
@@ -30,9 +61,9 @@
     <div class="step">
         <h2>🖥️ Windows (PowerShell or Git Bash)</h2>
         <div class="code">
-git clone https://github.com/olablom/PiEdge_EduKit.git<br>
-cd PiEdge_EduKit<br>
-python main.py
+            git clone https://github.com/olablom/PiEdge_EduKit.git<br>
+            cd PiEdge_EduKit<br>
+            python main.py
         </div>
         <p><strong>Alternative:</strong> Run <code>scripts\demo_pretty.bat</code> for a quick demo</p>
     </div>
@@ -40,9 +71,9 @@ python main.py
     <div class="step">
         <h2>🍎 macOS / 🐧 Linux (Terminal)</h2>
         <div class="code">
-git clone https://github.com/olablom/PiEdge_EduKit.git<br>
-cd PiEdge_EduKit<br>
-python3 main.py
+            git clone https://github.com/olablom/PiEdge_EduKit.git<br>
+            cd PiEdge_EduKit<br>
+            python3 main.py
         </div>
         <p><strong>Alternative:</strong> Run <code>bash scripts/demo_pretty.sh</code> for a quick demo</p>
     </div>
@@ -50,7 +81,7 @@ python3 main.py
     <div class="step">
         <h2>✅ Verification</h2>
         <div class="code">
-python verify.py
+            python verify.py
         </div>
         <p>This will check that all components are working correctly.</p>
     </div>
@@ -91,4 +122,5 @@ python verify.py
         <p>PiEdge EduKit - Making Edge AI Accessible</p>
     </footer>
 </body>
+
 </html>
