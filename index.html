@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PiEdge EduKit - Quick Start</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .code { background: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007acc; background: #f9f9f9; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 PiEdge EduKit - Quick Start</h1>
+        <p>Machine Learning on the Edge - Educational Toolkit</p>
+    </div>
+
+    <div class="step">
+        <h2>📋 Prerequisites</h2>
+        <ul>
+            <li>Python 3.8+ installed</li>
+            <li>Git installed</li>
+            <li>Web browser (for Jupyter Lab)</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>🖥️ Windows (PowerShell or Git Bash)</h2>
+        <div class="code">
+git clone https://github.com/olablom/PiEdge_EduKit.git<br>
+cd PiEdge_EduKit<br>
+python main.py
+        </div>
+        <p><strong>Alternative:</strong> Run <code>scripts\demo_pretty.bat</code> for a quick demo</p>
+    </div>
+
+    <div class="step">
+        <h2>🍎 macOS / 🐧 Linux (Terminal)</h2>
+        <div class="code">
+git clone https://github.com/olablom/PiEdge_EduKit.git<br>
+cd PiEdge_EduKit<br>
+python3 main.py
+        </div>
+        <p><strong>Alternative:</strong> Run <code>bash scripts/demo_pretty.sh</code> for a quick demo</p>
+    </div>
+
+    <div class="step">
+        <h2>✅ Verification</h2>
+        <div class="code">
+python verify.py
+        </div>
+        <p>This will check that all components are working correctly.</p>
+    </div>
+
+    <div class="step">
+        <h2>📚 Notebooks</h2>
+        <p>Start with these notebooks in order:</p>
+        <ol>
+            <li><strong>00_run_everything.ipynb</strong> - Complete workflow</li>
+            <li><strong>01_training_and_export.ipynb</strong> - Model training</li>
+            <li><strong>02_latency_benchmark.ipynb</strong> - Performance testing</li>
+            <li><strong>03_quantization.ipynb</strong> - Model optimization</li>
+            <li><strong>04_evaluate_and_verify.ipynb</strong> - Final evaluation</li>
+        </ol>
+    </div>
+
+    <div class="warning">
+        <h3>⚠️ Troubleshooting</h3>
+        <ul>
+            <li>If <code>python main.py</code> fails, try <code>python3 main.py</code></li>
+            <li>On Windows, you might need to run PowerShell as Administrator</li>
+            <li>If Jupyter doesn't open, check that port 8888 is available</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>🎯 What You'll Learn</h2>
+        <ul>
+            <li>PyTorch model training and export</li>
+            <li>ONNX model conversion and optimization</li>
+            <li>Model quantization for edge deployment</li>
+            <li>Performance benchmarking and analysis</li>
+            <li>Edge AI best practices</li>
+        </ul>
+    </div>
+
+    <footer style="margin-top: 40px; text-align: center; color: #666;">
+        <p>PiEdge EduKit - Making Edge AI Accessible</p>
+    </footer>
+</body>
+</html>

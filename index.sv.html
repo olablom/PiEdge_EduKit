@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PiEdge EduKit - Snabbstart</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+        .header { background: #f0f0f0; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+        .code { background: #f4f4f4; padding: 10px; border-radius: 4px; font-family: monospace; }
+        .step { margin: 20px 0; padding: 15px; border-left: 4px solid #007acc; background: #f9f9f9; }
+        .warning { background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🚀 PiEdge EduKit - Snabbstart</h1>
+        <p>Maskininlärning på kanten - Utbildningsverktyg</p>
+    </div>
+
+    <div class="step">
+        <h2>📋 Förutsättningar</h2>
+        <ul>
+            <li>Python 3.8+ installerat</li>
+            <li>Git installerat</li>
+            <li>Webbläsare (för Jupyter Lab)</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>🖥️ Windows (PowerShell eller Git Bash)</h2>
+        <div class="code">
+git clone https://github.com/olablom/PiEdge_EduKit.git<br>
+cd PiEdge_EduKit<br>
+python main.py
+        </div>
+        <p><strong>Alternativ:</strong> Kör <code>scripts\demo_pretty.bat</code> för en snabb demo</p>
+    </div>
+
+    <div class="step">
+        <h2>🍎 macOS / 🐧 Linux (Terminal)</h2>
+        <div class="code">
+git clone https://github.com/olablom/PiEdge_EduKit.git<br>
+cd PiEdge_EduKit<br>
+python3 main.py
+        </div>
+        <p><strong>Alternativ:</strong> Kör <code>bash scripts/demo_pretty.sh</code> för en snabb demo</p>
+    </div>
+
+    <div class="step">
+        <h2>✅ Verifiering</h2>
+        <div class="code">
+python verify.py
+        </div>
+        <p>Detta kontrollerar att alla komponenter fungerar korrekt.</p>
+    </div>
+
+    <div class="step">
+        <h2>📚 Notebooks</h2>
+        <p>Börja med dessa notebooks i ordning:</p>
+        <ol>
+            <li><strong>00_run_everything.ipynb</strong> - Komplett arbetsflöde</li>
+            <li><strong>01_training_and_export.ipynb</strong> - Modellträning</li>
+            <li><strong>02_latency_benchmark.ipynb</strong> - Prestandatestning</li>
+            <li><strong>03_quantization.ipynb</strong> - Modelloptimering</li>
+            <li><strong>04_evaluate_and_verify.ipynb</strong> - Slutlig utvärdering</li>
+        </ol>
+    </div>
+
+    <div class="warning">
+        <h3>⚠️ Felsökning</h3>
+        <ul>
+            <li>Om <code>python main.py</code> misslyckas, prova <code>python3 main.py</code></li>
+            <li>På Windows kan du behöva köra PowerShell som administratör</li>
+            <li>Om Jupyter inte öppnas, kontrollera att port 8888 är tillgänglig</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>🎯 Vad du kommer att lära dig</h2>
+        <ul>
+            <li>PyTorch modellträning och export</li>
+            <li>ONNX modellkonvertering och optimering</li>
+            <li>Modellkvantisering för kantdistribution</li>
+            <li>Prestandabenchmarking och analys</li>
+            <li>Edge AI bästa praxis</li>
+        </ul>
+    </div>
+
+    <footer style="margin-top: 40px; text-align: center; color: #666;">
+        <p>PiEdge EduKit - Gör Edge AI tillgängligt</p>
+    </footer>
+</body>
+</html>

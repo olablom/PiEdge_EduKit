@@ -1,0 +1,58 @@
+name: lab01
+
+on:
+  push:
+    paths:
+      - "**.py"
+      - "notebooks/**"
+      - "src/**"
+      - ".github/workflows/lab01.yml"
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install
+        run: |
+          python -m pip install -U pip
+          pip install -e .[dev]
+
+      - name: Export ONNX (smoke)
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os, torch
+          from importlib import import_module
+          TinyCNN = getattr(import_module("piedge_edukit.models.tinycnn"), "TinyCNN")
+          m = TinyCNN(num_classes=2).eval()
+          x = torch.randn(1,3,64,64)
+          os.makedirs("models", exist_ok=True)
+          torch.onnx.export(
+              m, x, "models/model.onnx",
+              input_names=["input"], output_names=["output"],
+              dynamic_axes={"input":{0:"batch"}, "output":{0:"batch"}},
+              opset_version=17
+          )
+          print("[OK] ONNX exported")
+          PY
+
+      - name: Run tests
+        run: pytest -q
+
+      - name: Fail if .ipynb.bak exist
+        run: |
+          if git ls-files | grep -E "\.ipynb\.bak$"; then
+            echo "Remove .ipynb.bak from repo"; exit 1; fi
+
+      - name: Lint notebooks for Swedish markdown
+        run: |
+          python scripts/lint_notebooks.py
