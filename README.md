@@ -16,7 +16,7 @@ This will:
 - Create `.venv` if it doesn't exist
 - Install all requirements
 - Register Jupyter kernel "piedge"
-- Launch Jupyter with the main notebook
+- Launch Jupyter Lab and open it automatically in your browser
 
 > **Note:** If `data/train` is missing, a small synthetic dataset is created automatically during execution.
 
