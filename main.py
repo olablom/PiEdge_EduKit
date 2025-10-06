@@ -73,12 +73,12 @@ def main():
     # Launch Jupyter
     print("🎯 Launching Jupyter Lab...")
     print("=" * 50)
-    print("📖 Open the notebooks in the 'notebooks/' directory")
+    print("📖 Opening web browser automatically...")
     print("🔗 Start with: 00_run_everything.ipynb")
     print("=" * 50)
     
     # Launch Jupyter Lab
-    jupyter_cmd = f"{python_cmd} -m jupyter lab --ip=0.0.0.0 --port=8888 --no-browser"
+    jupyter_cmd = f"{python_cmd} -m jupyter lab --ServerApp.open_browser=True --ip=127.0.0.1 --port=8888"
     print(f"Running: {jupyter_cmd}")
     print("Press Ctrl+C to stop Jupyter")
     
