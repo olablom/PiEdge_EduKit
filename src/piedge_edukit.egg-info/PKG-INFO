@@ -22,11 +22,12 @@ Requires-Dist: streamlit==1.36.0
 Requires-Dist: torch==2.3.1
 Requires-Dist: torchvision==0.18.1
 Requires-Dist: pandas==2.2.2
-Requires-Dist: scikit-learn==1.4.2
 Requires-Dist: jupyter==1.0.0
 Requires-Dist: ipykernel==6.29.4
 Requires-Dist: tqdm==4.66.4
 Requires-Dist: psutil==5.9.8
+Provides-Extra: dev
+Requires-Dist: scikit-learn==1.4.2; extra == "dev"
 Dynamic: license-file
 
 # PiEdge EduKit
@@ -238,3 +239,11 @@ INT8 quantization may fail on some systems. FP32 fallback is acceptable and will
 ## License
 
 Apache-2.0. See `LICENSE`.
+
+## Submission & Policy
+
+- Solo work only for this assignment.
+- Submit a single ZIP named `VG_<Firstname>_<Lastname>_<YYYYMMDD>.zip`.
+- Keep within ZIP limits (≤0.5 GB with downloads or ≤1 GB self-contained).
+- Everything must run inside `.venv` (no system Python installs).
+- Python 3.12 is required across OS: Windows 11, macOS (latest), Ubuntu 22.04.

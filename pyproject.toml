@@ -30,7 +30,6 @@ dependencies = [
     "torch==2.3.1",
     "torchvision==0.18.1",
     "pandas==2.2.2",
-    "scikit-learn==1.4.2",
     "jupyter==1.0.0",
     "ipykernel==6.29.4",
     "tqdm==4.66.4",
@@ -42,6 +41,11 @@ piedge-train = "piedge_edukit.train_cli:main"
 piedge-benchmark = "piedge_edukit.benchmark_cli:main"
 piedge-gpio = "piedge_edukit.gpio_cli:main"
 piedge-quantize = "piedge_edukit.quantization_cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "scikit-learn==1.4.2",
+]
 
 [tool.setuptools]
 packages = ["piedge_edukit"]

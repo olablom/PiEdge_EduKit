@@ -2589,8 +2589,9 @@ print("✅ Notebook helpers loaded - ready for evaluation!")
 ## Setup & Environment Check
 
 
-## cell 3 [markdown]
+## cell 3 [code]
 
+```python
 # ruff: noqa: E401
 import os
 import sys
@@ -2626,6 +2627,7 @@ def hints(*lines, solution: str | None = None, title="Need a nudge?"):
             "</details>"
         )
     display(Markdown("\n\n".join(md)))
+```
 
 
 ## cell 4 [markdown]
@@ -2707,7 +2709,7 @@ else:
 ## cell 10 [code]
 
 ```python
-# Show confusion matrix om den finns
+# Show confusion matrix if it exists
 import matplotlib.pyplot as plt
 from PIL import Image
 

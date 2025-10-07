@@ -2,7 +2,7 @@ PiEdge EduKit - Quantization Comparison Results
 ============================================================
 
 Version: 0.1.0
-Generated: 2025-10-07 14:36:34
+Generated: 2025-10-07 19:13:48
 
 Model Comparison:
   FP32 Size: 8.47 MB
@@ -10,7 +10,7 @@ Model Comparison:
   Size Reduction: N/A (quantization failed)
 
 Latency Comparison:
-  FP32 Mean: 0.588 ms
+  FP32 Mean: 0.589 ms
   INT8 Mean: N/A (quantization failed)
   Speedup: N/A (quantization failed)
 

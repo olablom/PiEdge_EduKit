@@ -157,3 +157,61 @@ if __name__ == "__main__":
     print(f"Preprocessing config hash: {config.config_hash}")
     print(f"Input shape: {config.get_input_shape()}")
     print(f"Validation: {config.validate_hash()}")
+
+# --- Compatibility shim: export torchvision FakeData via our package ---
+try:
+    from torchvision.datasets import FakeData as _TVFakeData
+
+    class FakeData(_TVFakeData):
+        """Re-export torchvision.datasets.FakeData for notebooks that import
+        it from piedge_edukit.preprocess."""
+
+        pass
+except Exception:  # torchvision might be unavailable in some envs
+    FakeData = None
+
+# --- Compatibility shim: expose torchvision FakeData and accept legacy args ---
+try:
+    from torchvision.datasets import FakeData as _TVFakeData
+
+    class FakeData(_TVFakeData):
+        """Compatibility wrapper around torchvision.datasets.FakeData.
+
+        Accepts:
+          - num_samples=... (alias for size=...)
+          - image_size=64  (int) -> auto-expand to (3,64,64)
+        """
+
+        def __init__(
+            self,
+            size=None,
+            num_samples=None,
+            image_size=(3, 64, 64),
+            num_classes=2,
+            **kwargs,
+        ):
+            # Map legacy 'num_samples' to 'size'
+            if num_samples is not None and size is None:
+                size = num_samples
+            # If user passed image_size as an int (e.g., 64), expand to (3,64,64)
+            if isinstance(image_size, int):
+                image_size = (3, image_size, image_size)
+            # Provide a safe default transform to ensure tensors are returned
+            if "transform" not in kwargs or kwargs["transform"] is None:
+                kwargs["transform"] = transforms.ToTensor()
+            # torchvision FakeData requires size and image_size
+            super().__init__(
+                size=size, image_size=image_size, num_classes=num_classes, **kwargs
+            )
+except Exception:
+    FakeData = None
+
+# --- Register alias into torchvision.datasets for notebooks expecting PEDFakeData ---
+try:
+    import torchvision.datasets as _tv_datasets  # type: ignore
+
+    if FakeData is not None:
+        setattr(_tv_datasets, "PEDFakeData", FakeData)
+except Exception:
+    # If torchvision is not available, silently skip aliasing
+    pass
