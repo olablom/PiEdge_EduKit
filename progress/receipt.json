@@ -1,0 +1,33 @@
+{
+  "timestamp": "2025-10-07T12:49:19Z",
+  "pass": true,
+  "checks": [
+    {
+      "name": "onnx_model_exists",
+      "ok": true,
+      "reason": "models/model.onnx present and non-empty"
+    },
+    {
+      "name": "latency_report_present",
+      "ok": true,
+      "reason": "reports/latency_results.json with p50_ms & p95_ms"
+    },
+    {
+      "name": "quantization_attempted",
+      "ok": true,
+      "reason": "quantization summary present"
+    },
+    {
+      "name": "confusion_matrix_present",
+      "ok": true,
+      "reason": "confusion matrix image present"
+    }
+  ],
+  "metrics": {
+    "mean_ms": 0.5674333333445247,
+    "p50_ms": 0.5509000000074593,
+    "p95_ms": 0.5996800000275471,
+    "p99_ms": 0.6040160000293326
+  },
+  "notes": "Lesson verification. Fails if no ONNX model or latency metrics."
+}

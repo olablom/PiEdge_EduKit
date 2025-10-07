@@ -1,0 +1,32 @@
+{
+  "system_info": {
+    "platform": "Windows-11-10.0.26100-SP0",
+    "python_version": "3.12.10",
+    "cpu_count": 20,
+    "memory_gb": 63.39,
+    "onnxruntime_version": "1.18.0",
+    "piedge_edukit_version": "0.1.0",
+    "device": "PC/Laptop",
+    "cpu_governor": "N/A"
+  },
+  "benchmark_config": {
+    "model_path": "models\\model.onnx",
+    "warmup_runs": 1,
+    "benchmark_runs": 3,
+    "batch_size": 1
+  },
+  "statistics": {
+    "mean": 0.5674333333445247,
+    "std": 0.02670047857759756,
+    "min": 0.5462999999963358,
+    "max": 0.605100000029779,
+    "p50": 0.5509000000074593,
+    "p95": 0.5996800000275471,
+    "p99": 0.6040160000293326
+  },
+  "raw_latencies": [
+    0.605100000029779,
+    0.5509000000074593,
+    0.5462999999963358
+  ]
+}

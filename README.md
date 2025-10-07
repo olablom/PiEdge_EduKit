@@ -207,3 +207,11 @@ INT8 quantization may fail on some systems. FP32 fallback is acceptable and will
 ## License
 
 Apache-2.0. See `LICENSE`.
+
+## Submission & Policy
+
+- Solo work only for this assignment.
+- Submit a single ZIP named `VG_<Firstname>_<Lastname>_<YYYYMMDD>.zip`.
+- Keep within ZIP limits (≤0.5 GB with downloads or ≤1 GB self-contained).
+- Everything must run inside `.venv` (no system Python installs).
+- Python 3.12 is required across OS: Windows 11, macOS (latest), Ubuntu 22.04.

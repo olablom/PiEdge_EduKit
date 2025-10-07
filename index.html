@@ -52,9 +52,11 @@
     <div class="step">
         <h2>📋 Prerequisites</h2>
         <ul>
-            <li>Python 3.8+ installed</li>
-            <li>Git installed</li>
-            <li>Web browser (for Jupyter Lab)</li>
+            <li>Python 3.12 (required)</li>
+            <li>OS: Windows 11 (latest), macOS (latest), Ubuntu 22.04</li>
+            <li>Optional GPU: NVIDIA (CUDA 11.x or 12.x) ≤ 16 GB VRAM, or Apple Silicon. CPU fallback is supported.</li>
+            <li>Jupyter Notebook (or VS Code Notebook, or Google Colab). No Jupyter Lab–specific extensions required.
+            </li>
         </ul>
     </div>
 
@@ -79,11 +81,17 @@
     </div>
 
     <div class="step">
-        <h2>✅ Verification</h2>
+        <h2>✅ Setup & Verification</h2>
         <div class="code">
+            bash scripts/setup_venv.sh
+            # activate
+            # - Linux/macOS: source .venv/bin/activate
+            # - Windows: .venv\Scripts\activate
             python verify.py
         </div>
-        <p>This will check that all components are working correctly.</p>
+        <p>No API keys are required (<code>.env.example</code> is provided for extensions). This will create a virtual
+            environment and verify components. A JSON receipt is written to <code>progress/receipt.json</code> even on
+            failure.</p>
     </div>
 
     <div class="step">
@@ -104,6 +112,32 @@
             <li>If <code>python main.py</code> fails, try <code>python3 main.py</code></li>
             <li>On Windows, you might need to run PowerShell as Administrator</li>
             <li>If Jupyter doesn't open, check that port 8888 is available</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>⚙️ Execution Providers</h2>
+        <p>The lesson runs on CPU by default using ONNX Runtime. If CUDA 11.x/12.x is available, you can enable
+            <code>CUDAExecutionProvider</code> in CLI tools; otherwise it falls back to
+            <code>CPUExecutionProvider</code>.</p>
+    </div>
+
+    <div class="step">
+        <h2>💡 Hints & Pitfalls</h2>
+        <ul>
+            <li>Always run inside <code>.venv</code>.</li>
+            <li>If verification fails, open <code>progress/receipt.json</code> to see failing checks.</li>
+            <li>Latency metrics are read from <code>reports/latency_results.json</code> (expects <code>p50_ms</code> and
+                <code>p95_ms</code> or nested statistics).</li>
+        </ul>
+    </div>
+
+    <div class="step">
+        <h2>📦 Submission & Policy</h2>
+        <ul>
+            <li>Solo work only.</li>
+            <li>ZIP name: <code>VG_&lt;Firstname&gt;_&lt;Lastname&gt;_&lt;YYYYMMDD&gt;.zip</code></li>
+            <li>ZIP limits: ≤ 0.5 GB with downloads or ≤ 1 GB self-contained; total external downloads ≤ 50 GB.</li>
         </ul>
     </div>
 

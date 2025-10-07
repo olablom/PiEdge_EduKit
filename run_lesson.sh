@@ -23,3 +23,6 @@ source .venv/bin/activate
 # Run the main script
 echo "🚀 Starting lesson..."
 python main.py
+echo "🔎 Verifying lesson..."
+python verify.py || true
+echo "✔ Lesson finished. See progress/receipt.json"
