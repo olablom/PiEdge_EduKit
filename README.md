@@ -1,5 +1,52 @@
 # PiEdge EduKit
 
+Denna gren innehåller en självbärande micro-lektion (~30 min) som demonstrerar INT8 QDQ-kvantisering och jämför latens och noggrannhet mellan FP32 och INT8 på CPU.
+
+## Snabbstart
+
+```bash
+bash run_lesson.sh
+```
+
+Efter körningen:
+
+- Se `progress/receipt.json` för PASS/FAIL och nyckeltal
+- Artefakter: `artifacts/model_fp32.onnx`, `artifacts/model_int8_qdq.onnx`
+- Rapporter: `reports/latency_fp32.txt`, `reports/latency_int8_qdq.txt`, `reports/accuracy_compare.json`
+
+### Quick start (Windows, Git Bash)
+
+```bash
+sed -i 's/\r$//' scripts/setup_venv.sh run_lesson.sh
+chmod +x scripts/setup_venv.sh run_lesson.sh
+bash -x run_lesson.sh
+```
+
+Outputs: `artifacts/`, `reports/`, `progress/receipt.json` med `"pass": true`.
+
+### Preflight
+
+- Kör endast kommandorader (inte prompt/output-rader). Kopiera inte emojis eller prefix.
+- Kör `run_lesson.sh` klart innan du läser `progress/receipt.json`.
+- Windows: använd Python 3.12 (`py -3.12 -m venv .venv`). Python 3.13 stöds inte.
+- Taggar krånglar? Kör `tools/clean_tags.sh` och `git fetch --tags --force`.
+
+## Körflöde
+
+1. `.venv` skapas via `scripts/setup_venv.sh`
+2. Träning av en liten MLP (sklearn digits) och export till ONNX (FP32)
+3. QDQ-INT8-kvantisering (ingen ConvInteger)
+4. Benchmark FP32 och INT8 (median skrivs som `median_ms:`)
+5. Accuracy-jämförelse
+6. Auto-verifiering och kvitto
+
+## Krav
+
+- Python 3.12
+- CPU räcker; ingen GPU krävs
+
+# PiEdge EduKit
+
 ![CI](https://github.com/olablom/PiEdge_EduKit/actions/workflows/ci.yml/badge.svg)
 
 **Start here → [`index.html`](index.html)** | Swedish: **[README.sv.md](README.sv.md)**
@@ -122,6 +169,22 @@ bash run_lesson.sh              # Linux/macOS
 # Auto-verify (JSON receipt)
 python verify.py
 # See progress/receipt.json
+```
+
+### Quantization (robust, with fallback)
+
+```bash
+# Quantize FP32 → INT8 (static). Uses data/calib if present, else synthetic samples.
+python scripts/quantize_static.py \
+  --fp32-model models/model.onnx \
+  --calib-dir data/train \
+  --num-calib 64 \
+  --img-size 64 \
+  --seed 42
+
+# Outputs:
+#  - models_quant/model_static.onnx (if static quant succeeds)
+#  - models_quant/model_dynamic.onnx (fallback if static fails)
 ```
 
 ## What you'll learn
