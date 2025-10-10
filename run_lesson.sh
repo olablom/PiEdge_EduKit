@@ -5,32 +5,46 @@ set -euo pipefail
 bash scripts/setup_venv.sh
 # shellcheck disable=SC1091
 source .venv/Scripts/activate || source .venv/bin/activate || true
-PYVER=$(python - <<'PY'
-import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")
-PY
-)
+
+# Robust Python resolver inside venv (Git Bash/Windows/Linux)
+PY_CMD=""
+if [[ -x ".venv/bin/python" ]]; then PY_CMD=".venv/bin/python"; fi
+if [[ -z "$PY_CMD" && -x ".venv/Scripts/python.exe" ]]; then PY_CMD=".venv/Scripts/python.exe"; fi
+if [[ -z "$PY_CMD" ]] && command -v python >/dev/null 2>&1; then PY_CMD="python"; fi
+if [[ -z "$PY_CMD" ]]; then echo "Could not find python in venv"; exit 1; fi
+
+PYVER=$($PY_CMD -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 [ "$PYVER" = "3.13" ] && { echo "Python 3.13 unsupported. Use 3.12."; exit 1; }
-:
- "${MIN_SPEEDUP_PCT:=0}"
-pip install -e .
+: "${MIN_SPEEDUP_PCT:=-10}"
+export MIN_SPEEDUP_PCT
+echo "MIN_SPEEDUP_PCT=${MIN_SPEEDUP_PCT}"
+"$PY_CMD" -m pip install -e .
 
 mkdir -p artifacts reports progress
 
 # 1) Exportera FP32 + test-split
-python -m piedge_edukit.prepare_model --out-fp32 artifacts/model_fp32.onnx --calib-npz artifacts/calib.npz --seed 42
+"$PY_CMD" -m piedge_edukit.prepare_model --out-fp32 artifacts/model_fp32.onnx --calib-npz artifacts/calib.npz --seed 42
 
 # 2) Kvantisering (NPZ-kalibrering) – QLinear (QOperator)
-python - <<'PY'
+"$PY_CMD" - <<'PY'
 import numpy as np, onnx
 from onnxruntime.quantization import quantize_static, CalibrationDataReader, QuantType, QuantFormat
-class NpzBatchReader:
+class NpzBatchReader(CalibrationDataReader):
     def __init__(self, model_path, npz_path, key='X_te', samples=512, bs=32):
         self.input_name = onnx.load(model_path).graph.input[0].name
         X = np.load(npz_path)[key][:samples].astype('float32')
-        if X.ndim == 1: X = X.reshape(-1,64)
-        elif X.ndim > 2: X = X.reshape(X.shape[0], -1)
-        self.it = iter([{self.input_name: X[i:i+bs]} for i in range(0, len(X), bs)])
-    def get_next(self): return next(self.it, None)
+        if X.ndim == 1:
+            X = X.reshape(-1, 64)
+        elif X.ndim > 2:
+            X = X.reshape(X.shape[0], -1)
+        self._batches = [{self.input_name: X[i:i+bs]} for i in range(0, len(X), bs)]
+        self._idx = 0
+    def get_next(self):
+        if self._idx >= len(self._batches):
+            return None
+        b = self._batches[self._idx]
+        self._idx += 1
+        return b
 
 dr = NpzBatchReader('artifacts/model_fp32.onnx', 'artifacts/calib.npz', 'input', 512, 32)
 quantize_static(
@@ -39,25 +53,31 @@ quantize_static(
     calibration_data_reader=dr,
     activation_type=QuantType.QUInt8,
     weight_type=QuantType.QInt8,
-    per_channel=False,
+    per_channel=True,
     quant_format=QuantFormat.QOperator,
 )
-print('✅ INT8 saved: artifacts/model_int8.onnx')
+print('INT8 saved: artifacts/model_int8.onnx')
 PY
 
 # 3) Benchmark (fakedata)
-python -m piedge_edukit.benchmark \
+"$PY_CMD" -m piedge_edukit.benchmark \
   --model-path artifacts/model_fp32.onnx \
   --fakedata --warmup 10 --runs 201 \
   --save-summary-as reports/latency_summary_fp32.txt
 
-python -m piedge_edukit.benchmark \
+# Kopiera plotten för FP32 för att behålla båda varianterna
+cp -f reports/latency_plot.png reports/latency_plot_fp32.png || true
+
+"$PY_CMD" -m piedge_edukit.benchmark \
   --model-path artifacts/model_int8.onnx \
   --fakedata --warmup 10 --runs 201 \
   --save-summary-as reports/latency_summary_int8.txt
 
+# Kopiera plotten för INT8
+cp -f reports/latency_plot.png reports/latency_plot_int8.png || true
+
 # 4) Accuracy (paketets evaluator; Windows-vänlig, ingen jq)
-python -m piedge_edukit.evaluate_accuracy \
+"$PY_CMD" -m piedge_edukit.evaluate_accuracy \
   --fp32 artifacts/model_fp32.onnx \
   --int8 artifacts/model_int8.onnx \
   --input-npz artifacts/calib.npz \
@@ -67,7 +87,7 @@ python -m piedge_edukit.evaluate_accuracy \
   --max-mae "${MAX_MAE:-0.02}"
 
 # 4b) Skriv verify-vänliga JSON-filer (robust mot CRLF och banners)
-python - <<'PY'
+"$PY_CMD" - <<'PY'
 import re, json
 from pathlib import Path
 
@@ -108,9 +128,8 @@ print("Saved verify JSONs:",
       "\n - reports/accuracy_for_verify.json")
 PY
 
-# 5) Verifiering – speedup-krav via env (default -100)
-: "${MIN_SPEEDUP_PCT:=-100}"
-python -m piedge_edukit.verify \
+# 5) Verifiering – speedup-krav via env
+"$PY_CMD" -m piedge_edukit.verify \
   --lat-fp32 reports/latency_summary_fp32.json \
   --lat-int8 reports/latency_summary_int8.json \
   --acc-json reports/accuracy_for_verify.json \

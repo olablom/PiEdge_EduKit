@@ -17,8 +17,23 @@ from pathlib import Path
 from typing import List, Dict, Tuple, Optional
 from tqdm import tqdm
 
-from .preprocess import PreprocessConfig, validate_preprocessing_consistency
-from .labels import LabelManager, validate_labels_integrity
+try:
+    # Prefer absolute imports so the file can be executed both as a module and as a script
+    from piedge_edukit.preprocess import (
+        PreprocessConfig,
+        validate_preprocessing_consistency,
+    )
+    from piedge_edukit.labels import LabelManager, validate_labels_integrity
+except ImportError:  # Allow running via file path without installation
+    import pathlib as _pathlib
+    import sys as _sys
+
+    _sys.path.append(str(_pathlib.Path(__file__).resolve().parents[1]))
+    from piedge_edukit.preprocess import (
+        PreprocessConfig,
+        validate_preprocessing_consistency,
+    )
+    from piedge_edukit.labels import LabelManager, validate_labels_integrity
 
 
 def ensure_dir(p: str) -> Path:
@@ -120,14 +135,21 @@ class LatencyBenchmark:
 
             # Try to use specified providers, fallback to CPU
             try:
-                session = ort.InferenceSession(str(self.model_path), providers=providers)
+                session = ort.InferenceSession(
+                    str(self.model_path), providers=providers
+                )
             except Exception:
                 print(f"[WARNING] Failed to use {providers}, falling back to CPU")
-                session = ort.InferenceSession(str(self.model_path), providers=["CPUExecutionProvider"])
+                session = ort.InferenceSession(
+                    str(self.model_path), providers=["CPUExecutionProvider"]
+                )
 
             print(f"[OK] Model loaded successfully")
             print(f"  Providers: {session.get_providers()}")
-            print(f"  Input shape: {session.get_inputs()[0].shape}")
+            # Cache input metadata for downstream logic (fake data, feeds)
+            self.input_name = session.get_inputs()[0].name
+            self.input_shape = session.get_inputs()[0].shape
+            print(f"  Input shape: {self.input_shape}")
             print(f"  Output shape: {session.get_outputs()[0].shape}")
 
             return session
@@ -136,30 +158,37 @@ class LatencyBenchmark:
             raise RuntimeError(f"Failed to load model: {e}")
 
     def _generate_fake_test_data(self) -> List[np.ndarray]:
-        """Generate fake test data for benchmarking."""
-        import torch
-        from torchvision import datasets, transforms
-
+        """Generate fake test data matching the model's input rank (2D or 4D)."""
         print("[INFO] Generating fake test data for benchmarking")
 
-        # Create transform
-        transform = self.preprocess_config.get_transform(is_training=False)
+        num_samples = 50  # small smoke set
+        input_shape = getattr(self, "input_shape", [None, 64])
+        rank = len(input_shape)
 
-        # Generate fake data
-        fake_data = datasets.FakeData(
-            size=50,  # Small set for benchmarking
-            image_size=(3, 64, 64),
-            num_classes=2,
-            transform=transform,
-        )
+        test_data: List[np.ndarray] = []
+        if rank == 2:
+            # [N, F] typical for MLP (sklearn → ONNX)
+            feat = input_shape[1] if input_shape[1] not in (None, "None") else 64
+            X = (np.random.rand(num_samples, int(feat)).astype(np.float32) - 0.5) * 2.0
+            test_data = [X[i] for i in range(num_samples)]
+            print(f"[OK] Generated {num_samples} fake test rows")
+        elif rank == 4:
+            # [N, C, H, W] typical for CNNs
+            C = int(input_shape[1] or 1)
+            H = int(input_shape[2] or 64)
+            W = int(input_shape[3] or 64)
+            X = (np.random.rand(num_samples, C, H, W).astype(np.float32) - 0.5) * 2.0
+            test_data = [X[i] for i in range(num_samples)]
+            print(f"[OK] Generated {num_samples} fake test images")
+        else:
+            # Fallback: flatten everything but batch
+            feat = int(
+                np.prod([d for d in input_shape[1:] if d not in (None, "None")] or [64])
+            )
+            X = (np.random.rand(num_samples, feat).astype(np.float32) - 0.5) * 2.0
+            test_data = [X[i] for i in range(num_samples)]
+            print(f"[OK] Generated {num_samples} fake samples as flat vectors")
 
-        # Convert to numpy arrays
-        test_data = []
-        for i in range(len(fake_data)):
-            image, _ = fake_data[i]
-            test_data.append(image.numpy())
-
-        print(f"[OK] Generated {len(test_data)} fake test images")
         return test_data
 
     def _prepare_test_data(self) -> List[np.ndarray]:
@@ -230,11 +259,13 @@ class LatencyBenchmark:
             img_batch = img[np.newaxis, ...]  # Add batch dimension
 
             # Run inference
-            _ = session.run(None, {"input": img_batch})
+            _ = session.run(None, {self.input_name: img_batch})
 
         print("[OK] Warmup completed")
 
-    def _benchmark_latency(self, session: ort.InferenceSession, test_data: List[np.ndarray]) -> List[float]:
+    def _benchmark_latency(
+        self, session: ort.InferenceSession, test_data: List[np.ndarray]
+    ) -> List[float]:
         """Benchmark inference latency."""
         print(f"Running {self.benchmark_runs} benchmark iterations...")
 
@@ -247,7 +278,7 @@ class LatencyBenchmark:
 
             # Measure inference time
             start_time = time.perf_counter()
-            _ = session.run(None, {"input": img_batch})
+            _ = session.run(None, {self.input_name: img_batch})
             end_time = time.perf_counter()
 
             latency_ms = (end_time - start_time) * 1000
@@ -275,7 +306,9 @@ class LatencyBenchmark:
         """Save benchmark results."""
 
         # Save detailed results
-        results_df = pd.DataFrame({"run": range(len(latencies)), "latency_ms": latencies})
+        results_df = pd.DataFrame(
+            {"run": range(len(latencies)), "latency_ms": latencies}
+        )
 
         csv_path = self.output_dir / "latency.csv"
         results_df.to_csv(csv_path, index=False)
@@ -286,7 +319,9 @@ class LatencyBenchmark:
             f.write("PiEdge EduKit - Latency Benchmark Results\n")
             f.write("=" * 50 + "\n\n")
 
-            f.write(f"Version: {self.system_info.get('piedge_edukit_version', 'Unknown')}\n")
+            f.write(
+                f"Version: {self.system_info.get('piedge_edukit_version', 'Unknown')}\n"
+            )
             f.write(f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n\n")
 
             f.write("Version Information:\n")
@@ -322,6 +357,8 @@ class LatencyBenchmark:
             f.write(f"  P50:  {stats['p50']:.3f}\n")
             f.write(f"  P95:  {stats['p95']:.3f}\n")
             f.write(f"  P99:  {stats['p99']:.3f}\n")
+            # Explicit machine-readable median for verify scripts
+            f.write(f"\nmedian_ms: {stats['p50']:.3f}\n")
 
         # Save JSON results
         json_results = {
@@ -474,19 +511,39 @@ Runs: {len(latencies)}
 
 def main():
     import argparse
+    from pathlib import Path
+    import shutil
 
     parser = argparse.ArgumentParser(description="Benchmark ONNX model latency")
     parser.add_argument("--model-path", required=True, help="Path to ONNX model")
-    parser.add_argument("--data-path", help="Path to test data (not needed with --fakedata)")
+    parser.add_argument(
+        "--data-path", help="Path to test data (not needed with --fakedata)"
+    )
     parser.add_argument("--output-dir", default="reports", help="Output directory")
-    parser.add_argument("--warmup", type=int, default=1, help="Warmup runs (1=Smoke Test, 50=Pretty Demo)")
-    parser.add_argument("--runs", type=int, default=3, help="Benchmark runs (3=Smoke Test, 200=Pretty Demo)")
-    parser.add_argument("--fakedata", action="store_true", help="Use FakeData instead of real images")
+    parser.add_argument(
+        "--warmup",
+        type=int,
+        default=1,
+        help="Warmup runs (1=Smoke Test, 50=Pretty Demo)",
+    )
+    parser.add_argument(
+        "--runs",
+        type=int,
+        default=3,
+        help="Benchmark runs (3=Smoke Test, 200=Pretty Demo)",
+    )
+    parser.add_argument(
+        "--fakedata", action="store_true", help="Use FakeData instead of real images"
+    )
     parser.add_argument(
         "--providers",
         nargs="+",
         default=["CPUExecutionProvider"],
         help="ONNX Runtime providers (e.g., CUDAExecutionProvider,CPUExecutionProvider)",
+    )
+    parser.add_argument(
+        "--save-summary-as",
+        help="Optional path to also copy latency_summary.txt to after run",
     )
 
     args = parser.parse_args()
@@ -494,6 +551,13 @@ def main():
     # Validate arguments
     if not args.fakedata and not args.data_path:
         parser.error("--data-path is required unless --fakedata is used")
+
+    # Friendly error if model is missing
+    if not Path(args.model_path).exists():
+        print(
+            f"[ERROR] Model file not found: {args.model_path}\nTip: run training first to export an ONNX model."
+        )
+        raise SystemExit(2)
 
     # Create benchmark
     benchmark = LatencyBenchmark(
@@ -510,9 +574,23 @@ def main():
     # Run benchmark with specified providers
     stats = benchmark.run_benchmark(providers=args.providers)
 
+    # Optionally copy the summary to a specific filename for downstream tooling
+    if args.save_summary_as:
+        src_summary = Path(args.output_dir) / "latency_summary.txt"
+        dst_summary = Path(args.save_summary_as)
+        try:
+            dst_summary.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(src_summary, dst_summary)
+            print(f"[OK] Summary copied to: {dst_summary}")
+        except Exception as e:
+            print(f"[WARN] Failed to copy summary to {dst_summary}: {e}")
+
     print(f"\n[OK] Benchmark completed successfully!")
     print(f"Results saved to: {args.output_dir}")
 
 
 if __name__ == "__main__":
-    main()
+    # Use package import to ensure absolute imports resolve when executed as a script
+    from piedge_edukit.benchmark import main as _main
+
+    _main()

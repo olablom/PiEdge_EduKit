@@ -48,8 +48,19 @@ else
 fi
 
 # --- 4) Uppgradera pip & installera krav ---
-python -m pip install -U pip setuptools wheel
-pip install -r requirements.txt
-pip install -e .
+if [[ -x ".venv/bin/pip" ]]; then
+  PIP_EXE=".venv/bin/pip"
+elif [[ -x ".venv/Scripts/pip.exe" ]]; then
+  PIP_EXE=".venv/Scripts/pip.exe"
+elif command -v pip >/dev/null 2>&1; then
+  PIP_EXE="pip"
+else
+  echo "❌ Could not find pip in virtual environment"
+  exit 1
+fi
+
+"${PIP_EXE}" install -U pip setuptools wheel
+"${PIP_EXE}" install -r requirements.txt
+"${PIP_EXE}" install -e .
 
 echo "✅ Environment ready"
