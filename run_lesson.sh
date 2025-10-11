@@ -13,12 +13,14 @@ if [[ -z "$PY_CMD" && -x ".venv/Scripts/python.exe" ]]; then PY_CMD=".venv/Scrip
 if [[ -z "$PY_CMD" ]] && command -v python >/dev/null 2>&1; then PY_CMD="python"; fi
 if [[ -z "$PY_CMD" ]]; then echo "Could not find python in venv"; exit 1; fi
 
+# Ensure pip toolchain via module form (Windows/PEP 668 safe)
+"$PY_CMD" -m pip install --upgrade pip setuptools wheel >/dev/null 2>&1 || true
+
 PYVER=$($PY_CMD -c "import sys; print(f'{sys.version_info.major}.{sys.version_info.minor}')")
 [ "$PYVER" = "3.13" ] && { echo "Python 3.13 unsupported. Use 3.12."; exit 1; }
 : "${MIN_SPEEDUP_PCT:=-10}"
 export MIN_SPEEDUP_PCT
 echo "MIN_SPEEDUP_PCT=${MIN_SPEEDUP_PCT}"
-"$PY_CMD" -m pip install -e .
 
 mkdir -p artifacts reports progress
 

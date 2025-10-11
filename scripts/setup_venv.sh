@@ -47,20 +47,18 @@ else
   exit 1
 fi
 
-# --- 4) Uppgradera pip & installera krav ---
-if [[ -x ".venv/bin/pip" ]]; then
-  PIP_EXE=".venv/bin/pip"
-elif [[ -x ".venv/Scripts/pip.exe" ]]; then
-  PIP_EXE=".venv/Scripts/pip.exe"
-elif command -v pip >/dev/null 2>&1; then
-  PIP_EXE="pip"
+# --- 4) Uppgradera pip & installera krav (always via python -m pip in venv) ---
+if [[ -x ".venv/bin/python" ]]; then
+  PY_IN_VENV=".venv/bin/python"
+elif [[ -x ".venv/Scripts/python.exe" ]]; then
+  PY_IN_VENV=".venv/Scripts/python.exe"
 else
-  echo "❌ Could not find pip in virtual environment"
-  exit 1
+  # Fallback to detected PY_EXE (should not normally happen after activation)
+  PY_IN_VENV="${PY_EXE}"
 fi
 
-"${PIP_EXE}" install -U pip setuptools wheel
-"${PIP_EXE}" install -r requirements.txt
-"${PIP_EXE}" install -e .
+"${PY_IN_VENV}" -m pip install -U pip setuptools wheel
+"${PY_IN_VENV}" -m pip install -r requirements.txt
+"${PY_IN_VENV}" -m pip install -e .
 
 echo "✅ Environment ready"
